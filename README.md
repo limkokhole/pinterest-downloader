@@ -60,6 +60,7 @@ Download all images/videos from Pinterest user/board/section.
     $ python3 pinterest-downloader.py https://www.pinterest.com/antonellomiglio/computer/ -bt -lt -d comp -f
     $ python3 pinterest-downloader.py https://www.pinterest.com/antonellomiglio/computer/ -c 40 # Default already good enough
     $ python3 pinterest-downloader.py https://www.pinterest.com/antonellomiglio/computer/ -j 666 # Default already fast enough
+    $ python3 pinterest-downloader.py https://www.pinterest.com/Foodrecipessmith/food-recipes/ -es # Exclude sections
 
 ### Example Output:
     xb@dnxb:~/Downloads/pinterest/pinterest-downloader$ python3 pinterest-downloader.py -d comp https://www.pinterest.com/antonellomiglio/computer/ 
