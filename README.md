@@ -9,7 +9,7 @@ Download all images/videos from pinterest user/board/section.
     - Able download both image and video.
     - Multi-threads when download images.
     - Media Filename naming in PinID_Title_Description_[Date].Ext meaningful form. 
-    - Media Filename truncate to fit maximum length automatically.
+    - Media Filename truncate to ... fit maximum length automatically.
     - Log PinID, Title, Description, Link, Metadata, [Date] to log.log file if media filename can't fit.
     - Unique board/log name with timestamp options.
 
