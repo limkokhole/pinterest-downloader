@@ -1,5 +1,5 @@
 # pinterest-downloader
-Download all images/videos from pinterest user/board/section.
+Download all images/videos from Pinterest user/board/section.
 
 ### Some features:
 
