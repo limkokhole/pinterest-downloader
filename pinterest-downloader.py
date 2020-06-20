@@ -329,7 +329,8 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_
         human_fname = ''
         if ('grid_title' in image) and image['grid_title']:
             human_fname = '_' + image['grid_title']
-        if ('description' in image) and image['description'].strip():
+        # Got case NoneType
+        if ('description' in image) and image['description'] and image['description'].strip():
             human_fname = '_'.join((human_fname, image['description'].strip()))
         if ('created_at' in image) and image['created_at']:
             # Don't want ':' become '..' later, so remove ':' early
@@ -612,7 +613,8 @@ def write_log(arg_timestamp_log, save_dir, images, pin):
             # if use 'title' may returns dict {'format': 'Find more ideas', 'text': None, 'args': []}
             if ('grid_title' in image) and image['grid_title']:
                 story = '\nTitle: ' + image['grid_title']
-            if ('description' in image) and image['description'].strip():
+            # Got case NoneType
+            if ('description' in image) and image['description'] and image['description'].strip():
                 story += '\nDescription: ' + image['description'].strip()
             if ('created_at' in image) and image['created_at']:
                 story += '\nCreated at: ' + image['created_at']
@@ -807,6 +809,9 @@ def main():
         return
 
     url_path = args.path.strip().split('?')[0].split('#')[0]
+    # Convert % format of unicode url when copied from Firefox 
+    # This is important especially section need compare the section name later
+    url_path = urllib.parse.unquote_plus(url_path) 
     if url_path.endswith('/'):
         url_path = url_path[:-1]
     if '://' in url_path:
