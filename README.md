@@ -2,17 +2,18 @@
 Download all images/videos from pinterest user/board/section.
 
 ### Some features:
-    - Accept input as /username/, /username/boardname/, /username/boardname/section, 
-    - Accept input as link of /username/, /username/boardname/, /username/boardname/section, and /pin/
-    - Able download sections of boards of username.
-    - High resolution. 
-    - Error tolerance. Try second resolution if first resolution error.
-    - Able download both image and video.
-    - Multi-threads when download images.
-    - Media Filename naming in PinID_Title_Description_[Date].Ext meaningful form. 
-    - Media Filename truncate to ... fit maximum length automatically.
-    - Log PinID, Title, Description, Link, Metadata, [Date] to log.log file since media filename can't fit.
-    - Unique board/log name with timestamp options.
+
+- [x] Accept input as /username/, /username/boardname/, /username/boardname/section, 
+- [x] Accept input as link of /username/, /username/boardname/, /username/boardname/section, and /pin/
+- [x] Able download sections of boards of username.
+- [x] High resolution. 
+- [x] Error tolerance. Try second resolution if first resolution error.
+- [x] Able download both image and video.
+- [x] Multi-threads when download images.
+- [x] Media Filename naming in PinID_Title_Description_[Date].Ext meaningful form. 
+- [x] Media Filename truncate to ... fit maximum length automatically.
+- [x] Log PinID, Title, Description, Link, Metadata, [Date] to log.log file since media filename can't fit.
+- [x] Unique board/log name with timestamp options.
 
 ### Usage:
 
