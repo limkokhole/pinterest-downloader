@@ -32,6 +32,7 @@ __status__ = 'Production'
 # Note: Support python 3 but not python 2
 
 import sys, os, traceback
+import readline #to make input() edit-able by LEFT key
 
 import argparse
 import time
@@ -206,7 +207,7 @@ def get_pin_info(pin_id, arg_timestamp_log, arg_force_update, arg_dir, arg_cut):
     print()
 
 
-def get_board_info(board_name, section):
+def get_board_info(board_name, exclude_section, section):
     s = get_session(0)
 
     r = s.get('https://www.pinterest.com/{}/'.format(board_name), timeout=30)
@@ -229,12 +230,23 @@ def get_board_info(board_name, section):
                     if sec['slug'] == section:
                         #print(sec)
                         boards['section'] = sec
+        return boards
     else:
-        boards = [i for i in initial_data['resourceResponses'] if i['name'] == 'BoardFeedResource']
-        if boards:
-            boards = boards[0]['response']['data'][0]
+        boards = {}
+        sections = []
+        for i in initial_data['resourceResponses']:
+            if i['name'] == 'BoardFeedResource':
+                for boa in i['response']['data']:
+                    boards['board'] = boa['board']
+                    break
 
-    return boards
+            elif (i['name'] == 'BoardSectionsResource') and (not exclude_section):
+                for sec in i['response']['data']:
+                    sections.append(sec)
+        return boards, sections
+
+
+
 
 
 def fetch_boards(uname):
@@ -291,11 +303,14 @@ def fetch_boards(uname):
         #print('[Boards url]: ' + r.url)
         data = r.json()
         #print('res data: ' + repr(data))
-        boards.extend(data['resource_response']['data'])
-
-        bookmark = data['resource']['options']['bookmarks'][0]
-
-    print('[➕] Found {} Boards'.format(len(boards)))
+        try:
+            boards.extend(data['resource_response']['data'])
+            bookmark = data['resource']['options']['bookmarks'][0]
+        except TypeError: # Normal if invalid username
+            cprint(''.join([ HIGHER_RED, '%s' % ('\n[✖] Possible invalid username.\n\n') ]), end='' ) 
+            break
+    b_len = len(boards)
+    print('[➕] Found {} Board{}.'.format(b_len, 's' if b_len > 1 else ''))
 
     return boards
 
@@ -762,7 +777,8 @@ Please ensure your username/boardname or link has media item.\n') )
     got_img = write_log(arg_timestamp_log, save_dir, images, None)
 
     if got_img:
-        print(' [➕] Found estimated {} images'.format(len(images)))
+        # From what I observed, always got extra index is not media, so better -1
+        print(' [➕] Found estimated {} images'.format(len(images) - 1))
     else: # empty section
         print('\n[i] No item found.')
         return
@@ -789,10 +805,9 @@ Please ensure your username/boardname or link has media item.\n') )
 
 
 def main():
-    #  Limitation: Section need username/boardname/section, can't simply username/boardname
-    arg_parser = argparse.ArgumentParser(description='Download 🅿️interest board by username, username/boardname, username/boardname/section or link. Support image and video.\n\
+    arg_parser = argparse.ArgumentParser(description='Download ALL board/section from 🅿️interest by username, username/boardname, username/boardname/section or link. Support image and video.\n\
         Filename compose of PinId_Title_Description_Date.Ext. PinId always there while the rest is optional.')
-    arg_parser.add_argument('path', type=str, help='Pinterest username, or username/boardname, or link( /pin/ may include created time )')
+    arg_parser.add_argument('path', nargs='?', help='Pinterest username, or username/boardname, or link( /pin/ may include created time )')
     arg_parser.add_argument('-d', '-dir', dest='dir', type=str, default='images', help='Specify folder path/name to store. Default is "images"')
     arg_parser.add_argument('-j', '--job', dest='thread_max', type=int, default=0, help='Specify maximum threads when downloading images. Default is number of processors on the machine, multiplied by 5')
     # Username or Boardname might longer than 255 bytes
@@ -806,10 +821,16 @@ def main():
     arg_parser.add_argument('-lt', '--log-timestamp', dest='log_timestamp', action='store_true', help='Suffix log.log filename with unique timestamp. Default filename is log.log.\n\
         Note: Pin id without Title/Description/Link/Metadata/Created_at will not write to log.')
     arg_parser.add_argument('-f', '--force', action='store_true', help='Force re-download even if image already exist')
+    arg_parser.add_argument('-es', '--exclude-section', dest='exclude_section', action='store_true', help='Exclude sections if download from username or board.')
     try:
-        args = arg_parser.parse_args()
+        args, remaining  = arg_parser.parse_known_args()
     except SystemExit: # Normal if --help, catch here to avoid main() global ex catch it
         return
+
+    if not args.path:
+        args.path = input('Username/Boardname/Section or Link: ').strip()
+    if not args.path:
+        return quit('Path cannot be empty. ')
 
     url_path = args.path.strip().split('?')[0].split('#')[0]
     # Convert % format of unicode url when copied from Firefox 
@@ -850,7 +871,7 @@ def main():
         # Will err if try to create section by naming 'more_ideas'
         if ( slash_path[-3] in ('search', 'categories', 'topics') ) or ( slash_path[-1] in ['more_ideas'] ):
             return quit('{}'.format('\n[✖] Search, Categories, Topics, more_ideas are not supported.\n') )
-        board = get_board_info(u_url, slash_path[-1])
+        board = get_board_info(u_url, False, slash_path[-1]) # need_get_section's True/False not used
         try: 
             IMGS_SESSION = get_session(2)
             IMG_SESSION = get_session(3)
@@ -866,13 +887,23 @@ def main():
         print('[i] Job is download single board by username/boardname: {}'.format(u_url))
         if slash_path[-2] in ('search', 'categories', 'topics'):
             return quit('{}'.format('\n[✖] Search, Categories and Topics not supported.\n') )
-        board = get_board_info(u_url, None)
+        board, sections = get_board_info(u_url, args.exclude_section, None)
         try: 
             IMGS_SESSION = get_session(2)
             IMG_SESSION = get_session(3)
             V_SESSION = get_session(4)
             fetch_imgs( board, slash_path[-2], slash_path[-1], None, args.board_timestamp, args.log_timestamp, args.force
             , args.dir, args.thread_max, IMGS_SESSION, IMG_SESSION, V_SESSION, args.cut )
+            if sections:
+                sec_c = len(sections)
+                print('[i] Trying to get ' + str(sec_c) + ' section{}'.format('s' if sec_c > 1 else ''))
+                for sec in sections:
+                    s_url = u_url + '/' + sec['slug']
+                    board = get_board_info(s_url, False, sec['slug']) # False not using bcoz sections not [] already
+                    fetch_imgs( board, slash_path[-2], slash_path[-1], sec['slug'], args.board_timestamp
+                        , args.log_timestamp, args.force, args.dir, args.thread_max
+                        , IMGS_SESSION, IMG_SESSION, V_SESSION, args.cut )
+
         except KeyError:
             return quit(traceback.format_exc())
 
@@ -896,6 +927,24 @@ def main():
                 board['owner']['id'] = board['id']
                 fetch_imgs( board, slash_path[-1], board_name, None, args.board_timestamp, args.log_timestamp, args.force
                 , args.dir, args.thread_max, IMGS_SESSION, IMG_SESSION, V_SESSION, args.cut )
+                if (not args.exclude_section) and (board['section_count'] > 0):
+                    sec_c = board['section_count']
+                    print('[i] Trying to get ' + str(sec_c) + ' section{}'.format('s' if sec_c > 1 else ''))
+                    u_url = board['url'] 
+                    # E.g. /example/commodore-computers/ need trim to example/commodore-computers
+                    if u_url[-1] == '/': 
+                        u_url = u_url[:-1]
+                    if u_url[0] == '/':
+                        u_url = u_url[1:]
+                    # ags.es placeholder below always False bcoz above already check (not args.exclude_section) 
+                    board, sections = get_board_info(u_url, False, None)
+                    for sec in sections:
+                        s_url = u_url + '/' + sec['slug']
+                        board = get_board_info(s_url, False, sec['slug']) 
+                        sec_uname, sec_bname = u_url.split('/')
+                        fetch_imgs( board, sec_uname, sec_bname, sec['slug'], args.board_timestamp
+                            , args.log_timestamp, args.force, args.dir, args.thread_max
+                            , IMGS_SESSION, IMG_SESSION, V_SESSION, args.cut )
 
         except KeyError:
             return quit(traceback.format_exc())
