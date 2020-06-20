@@ -198,9 +198,9 @@ def get_pin_info(pin_id, arg_timestamp_log, arg_force_update, arg_dir, arg_cut):
         IMG_SESSION = get_session(3)
         V_SESSION = get_session(4)
         print('[i] Download Pin id: ' + images['id'] + ' in directory: ' + arg_dir)
-        printProgressBar(0, 1, prefix='[...] Progress:', suffix='Complete', length=50)
+        printProgressBar(0, 1, prefix='[...] Downloading:', suffix='Complete', length=50)
         download_img(images, arg_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_cut)
-        printProgressBar(1, 1, prefix='[✔] Progress:', suffix='Complete  ', length=50)
+        printProgressBar(1, 1, prefix='[✔] Downloaded:', suffix='Complete   ', length=50)
     except KeyError:
         return quit(traceback.format_exc())
     print()
@@ -780,10 +780,10 @@ Please ensure your username/boardname or link has media item.\n') )
             # Get the results
             # rs = f.result()
             # print('done')
-            printProgressBar(index + 1, len(images), prefix='[...] Progress:', suffix='Complete', length=50)
+            printProgressBar(index + 1, len(images), prefix='[...] Downloading:', suffix='Complete', length=50)
 
-    # Need suffix with extra 2 spaces to replace previos longer ... line to avoid see wrong word "Complete"
-    printProgressBar(len(images), len(images), prefix='[✔] Progress:', suffix='Complete  ', length=50)
+    # Need suffix with extra 3 spaces to replace previos longer ... + Downloading->ed line to avoid see wrong word "Complete"
+    printProgressBar(len(images), len(images), prefix='[✔] Downloaded:', suffix='Complete   ', length=50)
 
     print()
 
@@ -824,6 +824,9 @@ def main():
     if url_path.startswith('/'):
         url_path = url_path[1:]
     slash_path = url_path.split('/')
+    if '.' in slash_path[0]:
+        # Impossible dot in username, so it means host without https:// and nid remove
+        slash_path = slash_path[1:]
     if len(slash_path) > 3:
         return quit('[!] Something wrong with Pinterest URL. Please report this issue at https://github.com/limkokhole/pinterest-downloader/issues , thanks.') 
 
@@ -844,8 +847,9 @@ def main():
     if len(slash_path) == 3:
         u_url = '/'.join(slash_path)
         print('[i] Job is download single board by username/boardname/section: {}'.format(u_url))
-        if slash_path[-3] in ('search', 'categories', 'topics'):
-            return quit('{}'.format('\n[✖] Search, Categories and Topics not supported.\n') )
+        # Will err if try to create section by naming 'more_ideas'
+        if ( slash_path[-3] in ('search', 'categories', 'topics') ) or ( slash_path[-1] in ['more_ideas'] ):
+            return quit('{}'.format('\n[✖] Search, Categories, Topics, more_ideas are not supported.\n') )
         board = get_board_info(u_url, slash_path[-1])
         try: 
             IMGS_SESSION = get_session(2)
