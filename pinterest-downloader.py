@@ -782,7 +782,7 @@ Please ensure your username/boardname or link has media item.\n') )
             # print('done')
             printProgressBar(index + 1, len(images), prefix='[...] Progress:', suffix='Complete', length=50)
 
-    # Need suffix with extra 2 spaces to replace previos logner ... line to avoid see wrong word "Complete"
+    # Need suffix with extra 2 spaces to replace previos longer ... line to avoid see wrong word "Complete"
     printProgressBar(len(images), len(images), prefix='[✔] Progress:', suffix='Complete  ', length=50)
 
     print()
