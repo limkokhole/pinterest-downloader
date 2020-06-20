@@ -57,6 +57,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 FALLBACK_MAX_LEN = (245, 240, 230, 200, 170, 135, 85)
 
+# RIP UA, https://groups.google.com/a/chromium.org/forum/m/#!msg/blink-dev/-2JIRNMWJ7s/yHe4tQNLCgAJ
+UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.0.0 Safari/537.36'
+
 def quit(msgs, exit=True):
     if not isinstance(msgs, list):
         msgs = [msgs]
@@ -106,7 +109,7 @@ def get_session(ver_i):
     if ver_i == 0:
         s.headers = {
             #'Host': 'www.pinterest.com',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.113 Safari/537.36 Vivaldi/2.1.1337.51',
+            'User-Agent': UA,
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.5',
             'DNT': '1',
@@ -116,7 +119,7 @@ def get_session(ver_i):
     elif ver_i == 3:
         s.headers = {
             #'Host': 'www.pinterest.com', #Image can be https://i.pinimg.com, so let it auto or else fail
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.113 Safari/537.36 Vivaldi/2.1.1337.51',
+            'User-Agent': UA,
             'Accept': 'image/webp,*/*',
             'Accept-Language': 'en-US,en;q=0.5',
             'Referer': 'https://www.pinterest.com/',
@@ -129,7 +132,7 @@ def get_session(ver_i):
     elif ver_i == 4:
         # 'https://v.pinimg.com/videos/mc/hls/8a/99/7d/8a997df97cab576795be2a4490457ea3.m3u8' 
         s.headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.113 Safari/537.36 Vivaldi/2.1.1337.51',
+            'User-Agent': UA,
             'Accept': '*/*',
             'Accept-Language': 'en-US,en;q=0.5',
             'Origin': 'https://www.pinterest.com',
@@ -143,7 +146,7 @@ def get_session(ver_i):
     else: # == 1, 2
         s.headers = {
             #'Host': 'www.pinterest.com',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.113 Safari/537.36 Vivaldi/2.1.1337.51',
+            'User-Agent': UA,
             'Accept': 'application/json, text/javascript, */*, q=0.01',
             'Accept-Language': 'en-US,en;q=0.5',
             'Referer': 'https://www.pinterest.com/',
