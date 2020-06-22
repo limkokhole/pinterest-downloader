@@ -38,6 +38,18 @@ try:
     import readline #to make input() edit-able by LEFT key
 except ModuleNotFoundError:
     pass
+
+try:
+    x_tag = '✖'
+    done_tag = '✔'
+    plus_tag = '➕'
+    pinterest_logo = '🅿️'
+except UnicodeEncodeError:
+    x_tag = 'x'
+    done_tag = 'DONE'
+    plus_tag = '+'
+    pinterest_logo = 'P'
+
 import argparse
 import time
 from datetime import datetime, timedelta
@@ -206,7 +218,7 @@ def get_pin_info(pin_id, arg_timestamp_log, arg_force_update, arg_dir, arg_cut, 
         print('[i] Download Pin id: ' + str(images['id']) + ' in directory: ' + arg_dir)
         printProgressBar(0, 1, prefix='[...] Downloading:', suffix='Complete', length=50)
         download_img(images, arg_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_cut,  fs_f_max)
-        printProgressBar(1, 1, prefix='[✔] Downloaded:', suffix='Complete   ', length=50)
+        printProgressBar(1, 1, prefix='[' + done_tag + '] Downloaded:', suffix='Complete   ', length=50)
     except KeyError:
         return quit(traceback.format_exc())
     print()
@@ -309,10 +321,10 @@ def fetch_boards(uname):
             boards.extend(data['resource_response']['data'])
             bookmark = data['resource']['options']['bookmarks'][0]
         except TypeError: # Normal if invalid username
-            cprint(''.join([ HIGHER_RED, '%s' % ('\n[✖] Possible invalid username.\n\n') ]), end='' ) 
+            cprint(''.join([ HIGHER_RED, '%s' % ('\n[' + x_tag + '] Possible invalid username.\n\n') ]), end='' ) 
             break
     b_len = len(boards)
-    print('[➕] Found {} Board{}.'.format(b_len, 's' if b_len > 1 else ''))
+    print('[' + plus_tag + '] Found {} Board{}.'.format(b_len, 's' if b_len > 1 else ''))
 
     return boards
 
@@ -425,7 +437,7 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_
                 # But for my code assume folder already there, so can use this trick
                 pass
             except OSError: # e.g. File name too long
-                cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[✖] Download this image at'
+                cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this image at'
                     , file_path, 'failed :', url, '\n') ]), end='' )
                 cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), end='' )  
                 return quit(traceback.format_exc())
@@ -446,13 +458,13 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_
                                 f.write(chunk)
 
                     except OSError: # e.g. File name too long
-                        cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[✖] Download this image at'
+                        cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this image at'
                             , file_path, 'failed :', url, '\n') ]), end='' )
                         cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), end='' )  
                         return quit(traceback.format_exc())
 
                 else:
-                    #cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[✖] Download this image at'
+                    #cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this image at'
                     #, file_path, 'failed :', url, '\n') ]), end='' )
                     imgDimens = []
                     imgDimensD = {}
@@ -477,17 +489,17 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_
                                         for chunk in r:
                                             f.write(chunk)
                                 except OSError: # e.g. File name too long
-                                    cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[✖] Retried this image at'
+                                    cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Retried this image at'
                                         , file_path, 'failed :', url, '\n') ]), end='' )
                                     cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), end='' )  
                                     return quit(traceback.format_exc())
 
-                                #print('\n\n[➕] ', end='') # konsole has issue if BOLD_ONLY with cprint with ➕
+                                #print('\n\n[' + plus_tag + '] ', end='') # konsole has issue if BOLD_ONLY with cprint with plus_tag
                                 # Got case replace /originals/(detected is .png by imghdr)->covert to .png replace 736x bigger size than orig's png (but compare quality is not trivial), better use orig as first choice
                                 # e.g. https://www.pinterest.com/antonellomiglio/computer/ 's https://i.pinimg.com/736x/3d/f0/88/3df088200b94f0b6b8325ae0a118b401--apple-computer-next-computer.jpg
                                 #cprint('\nRetried with second best quality url success :D {} saved to {}\n'.format(url, file_path), attrs=BOLD_ONLY)
                             else:
-                                cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[✖] Retried this image at'
+                                cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Retried this image at'
                                 , file_path, 'failed :', url, '\n') ]), end='' )
                         else:
                             pass #cprint('\nFile at {} already exist.\n'.format(file_path), attrs=BOLD_ONLY)
@@ -527,13 +539,13 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_
                                 for chunk in r:
                                     f.write(chunk)
                         except OSError: # e.g. File name still too long
-                            cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[✖] Download this video at'
+                            cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this video at'
                                 , save_dir, 'failed :', vurl, '\n') ]), end='' )
                             cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), end='' )  
                             return quit(traceback.format_exc()) 
 
                     else:
-                        cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[✖] Download this video at'
+                        cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this video at'
                             , save_dir, 'failed :', vurl, '\n') ]), end='' )
 
     except: # Need catch inside job, or else it doesn't throws
@@ -654,11 +666,11 @@ def fetch_imgs(board, uname, board_name, section, arg_timestamp, arg_timestamp_l
                 section_folder = board['section']['title']
                 section_id = board['section']['id']
         else:
-            return quit('{}'.format('\n[✖] No item found.\n\
+            return quit('{}'.format('\n[' + x_tag + '] No item found.\n\
 Please ensure your username/boardname or link has media item.\n') )
     except (KeyError, TypeError):
         url = '/'.join((uname, board_name))
-        cprint(''.join([ HIGHER_RED, '%s %s %s' % ('\n[✖] Failed. URL:', url, '\n\n') ]), end='' )
+        cprint(''.join([ HIGHER_RED, '%s %s %s' % ('\n[' + x_tag + '] Failed. URL:', url, '\n\n') ]), end='' )
         return quit(traceback.format_exc() + '\n[!] Something wrong with Pinterest URL. Please report this issue at https://github.com/limkokhole/pinterest-downloader/issues , thanks.') 
 
     if section:
@@ -759,7 +771,7 @@ Please ensure your username/boardname or link has media item.\n') )
     if got_img:
         # From what I observed, always got extra index is not media, so better -1
         # And no point to loop above and detect early, overkill
-        print(' [➕] Found estimated {} images'.format(len(images) - 1))
+        print(' [' + plus_tag + '] Found estimated {} images'.format(len(images) - 1))
     else: # empty section
         print('\n[i] No item found.')
         return
@@ -782,7 +794,7 @@ Please ensure your username/boardname or link has media item.\n') )
 
     # Need suffix with extra 3 spaces to replace previos longer ... + Downloading->ed line
     # ... to avoid see wrong word "Complete"
-    printProgressBar(len(images), len(images), prefix='[✔] Downloaded:'
+    printProgressBar(len(images), len(images), prefix='[' + done_tag + '] Downloaded:'
         , suffix='Complete   ', length=50)
 
     print()
@@ -792,7 +804,7 @@ def main():
 
     start_time = int(time.time())
 
-    arg_parser = argparse.ArgumentParser(description='Download ALL board/section from 🅿️interest by username, username/boardname, username/boardname/section or link. Support image and video.\n\
+    arg_parser = argparse.ArgumentParser(description='Download ALL board/section from ' + pinterest_logo +  'interest by username, username/boardname, username/boardname/section or link. Support image and video.\n\
         Filename compose of PinId_Title_Description_Date.Ext. PinId always there while the rest is optional.\n\
         If filename too long will endswith ... and you can check details in log-pinterest-downloader.log file.')
     arg_parser.add_argument('path', nargs='?', help='Pinterest username, or username/boardname, or link( /pin/ may include created time )')
@@ -834,7 +846,7 @@ def main():
     if '://' in url_path:
         url_path = '/'.join(url_path.split('://')[1:][0].split('/')[1:])
         if not url_path:
-            return quit('{} {} {}'.format('\n[✖] Neither username/boardname nor valid link: ', args.path, '\n') )
+            return quit('{} {} {}'.format('\n[' + x_tag + '] Neither username/boardname nor valid link: ', args.path, '\n') )
     if url_path.startswith('/'):
         url_path = url_path[1:]
     slash_path = url_path.split('/')
@@ -884,7 +896,7 @@ def main():
         print('[i] Job is download single board by username/boardname/section: {}'.format(u_url))
         # Will err if try to create section by naming 'more_ideas'
         if ( slash_path[-3] in ('search', 'categories', 'topics') ) or ( slash_path[-1] in ['more_ideas'] ):
-            return quit('{}'.format('\n[✖] Search, Categories, Topics, more_ideas are not supported.\n') )
+            return quit('{}'.format('\n[' + x_tag + '] Search, Categories, Topics, more_ideas are not supported.\n') )
         board = get_board_info(u_url, False, slash_path[-1]) # need_get_section's True/False not used
         try: 
             IMGS_SESSION = get_session(2)
@@ -900,7 +912,7 @@ def main():
         u_url = '/'.join(slash_path)
         print('[i] Job is download single board by username/boardname: {}'.format(u_url))
         if slash_path[-2] in ('search', 'categories', 'topics'):
-            return quit('{}'.format('\n[✖] Search, Categories and Topics not supported.\n') )
+            return quit('{}'.format('\n[' + x_tag + '] Search, Categories and Topics not supported.\n') )
         board, sections = get_board_info(u_url, args.exclude_section, None)
         try: 
             IMGS_SESSION = get_session(2)
@@ -924,7 +936,7 @@ def main():
     elif len(slash_path) == 1:
         print('[i] Job is download all boards Job is download all boards by username: {}'.format(slash_path[-1]))
         if slash_path[-1] in ('search', 'categories', 'topics'):
-            return quit('{}'.format('\n[✖] Search, Categories and Topics not supported.\n') )
+            return quit('{}'.format('\n[' + x_tag + '] Search, Categories and Topics not supported.\n') )
         #boards = get_user_boards( slash_path[-1] )
         try: 
             boards = fetch_boards( slash_path[-1] )
@@ -972,10 +984,10 @@ if __name__ == '__main__':
     try:
         main()
     except requests.exceptions.ReadTimeout:
-        cprint(''.join([ HIGHER_RED, '{}'.format('\n[✖] Suddenly not able to connect. Please check your network.\n') ]), end='' )
+        cprint(''.join([ HIGHER_RED, '{}'.format('\n[' + x_tag + '] Suddenly not able to connect. Please check your network.\n') ]), end='' )
         quit('')
     except requests.exceptions.ConnectionError:
-        cprint(''.join([ HIGHER_RED, '{}'.format('\n[✖] Not able to connect. Please check your network.\n') ]), end='' )
+        cprint(''.join([ HIGHER_RED, '{}'.format('\n[' + x_tag + '] Not able to connect. Please check your network.\n') ]), end='' )
         quit('')
     except:
         quit(traceback.format_exc())
