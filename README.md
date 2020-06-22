@@ -12,7 +12,7 @@ Download all images/videos from Pinterest user/board/section.
 - [x] Multi-threads when download images.
 - [x] Media Filename naming in PinID_Title_Description_[Date].Ext meaningful form. 
 - [x] Media Filename truncate to ... fit maximum filename length automatically. -c to cut if you prefer.
-- [x] Log PinID, Title, Description, Link, Metadata, [Date] to log.log file since media filename can't fit.
+- [x] Log PinID, Title, Description, Link, Metadata, [Date] to log-pinterest-downloader.log file since media filename can't fit.
 - [x] Unique board/log name with timestamp options.
 
 ### Usage:

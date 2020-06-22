@@ -51,7 +51,7 @@ import colorama
 from colorama import Fore
 colorama.init() # Windows need this
 
-ANSI_CLEAR = '\x1b[0m\x1b[K'
+#ANSI_CLEAR = '\x1b[0m\x1b[K'
 HIGHER_GREEN = Fore.LIGHTGREEN_EX
 HIGHER_RED = Fore.LIGHTRED_EX
 BOLD_ONLY = ['bold']
@@ -314,7 +314,7 @@ def fetch_boards(uname):
 
     return boards
 
-# The filesystem limites is 255(normal) or 143((eCryptfs) bytes
+# The filesystem limits is 255(normal) or 143((eCryptfs) bytes
 # So can't blindly [:] slice without encode first (which most downloaders do the wrong way)
 # And need decode back after slice
 # And to ensure mix sequence byte in UTF-8 and work
@@ -326,24 +326,24 @@ def fetch_boards(uname):
 # https://stackoverflow.com/questions/13132976
 # https://stackoverflow.com/questions/50385123
 # https://stackoverflow.com/questions/11820006
-def get_max_path(arg_cut, fs_f_max, fpart_excluded_ext, ext):
-    #print('before f: ' + fpart_excluded_ext)
+def get_max_path(arg_cut, fs_f_max, fpart_excluded_immutable, immutable):
+    #print('before f: ' + fpart_excluded_immutable)
     if arg_cut >= 0:
-        fpart_excluded_ext = fpart_excluded_ext[:arg_cut]
-    if ext:
-        ext_len = len(ext.encode('utf-8')) # just in case
+        fpart_excluded_immutable = fpart_excluded_immutable[:arg_cut]
+    if immutable:
+        immutable_len = len(immutable.encode('utf-8')) # just in case
     else:
-        ext_len = 0
-    space_remains = fs_f_max - ext_len
+        immutable_len = 0
+    space_remains = fs_f_max - immutable_len
     # range([start], stop[, step])
     # -1 step * 4 loop = -4, means looping 4 bytes(UTF-8 max) from right to left
     for gostan in range(space_remains, space_remains - 4, -1):
         try:
-            fpart_excluded_ext = fpart_excluded_ext.encode('utf-8')[: gostan ].decode('utf-8')
+            fpart_excluded_immutable = fpart_excluded_immutable.encode('utf-8')[: gostan ].decode('utf-8')
         except UnicodeDecodeError:
-            pass #print('Calm down, this is normal: ' + str(gostan) + ' f: ' + fpart_excluded_ext)
-    #print('after f: ' + fpart_excluded_ext)
-    return fpart_excluded_ext
+            pass #print('Calm down, this is normal: ' + str(gostan) + ' f: ' + fpart_excluded_immutable)
+    #print('after f: ' + fpart_excluded_immutable)
+    return fpart_excluded_immutable
 
 
 def get_output_file_path(url, arg_cut, fs_f_max, image_id, human_fname, save_dir):
@@ -351,13 +351,13 @@ def get_output_file_path(url, arg_cut, fs_f_max, image_id, human_fname, save_dir
     pin_id_str = str(image_id)
     basename = os.path.basename(url)
     _, ext = basename.split('.')
-    non_cut_and_non_gotstan_field = pin_id_str + '.' +  ext
+    immutable = pin_id_str + '.' +  ext
 
     fpart_excluded_ext_before  = sanitize( human_fname )
     #print( 'get output f:' + fpart_excluded_ext_before )
 
     fpart_excluded_ext = get_max_path(arg_cut, fs_f_max, fpart_excluded_ext_before
-        , non_cut_and_non_gotstan_field)
+        , immutable)
         
     if fpart_excluded_ext:
         if fpart_excluded_ext_before == fpart_excluded_ext: # means not truncat
@@ -370,7 +370,7 @@ def get_output_file_path(url, arg_cut, fs_f_max, image_id, human_fname, save_dir
                 fpart_excluded_ext = fpart_excluded_ext[:-1]
 
             fpart_excluded_ext = get_max_path(arg_cut, fs_f_max, fpart_excluded_ext
-                , '...' + non_cut_and_non_gotstan_field)
+                , '...' + immutable)
 
             fpart_excluded_ext = fpart_excluded_ext + '...'
 
