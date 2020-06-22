@@ -34,8 +34,10 @@ __status__ = 'Production'
 # Note: Support python 3 but not python 2
 
 import sys, os, traceback
-import readline #to make input() edit-able by LEFT key
-
+try:
+    import readline #to make input() edit-able by LEFT key
+except ModuleNotFoundError:
+    pass
 import argparse
 import time
 from datetime import datetime, timedelta
