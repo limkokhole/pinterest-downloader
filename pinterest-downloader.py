@@ -26,7 +26,7 @@ __credits__ = ['Inspired by https://github.com/SevenLines/pinterest-board-downlo
 __license__ = 'MIT'
 # Version increase if the output file/dir naming incompatible with existing
 #, which might re-download for some files of previous version because of dir/filename not match
-__version__ = 1.2
+__version__ = 1.3
 __maintainer__ = 'Lim Kok Hole'
 __email__ = 'limkokhole@gmail.com'
 __status__ = 'Production'
@@ -34,6 +34,11 @@ __status__ = 'Production'
 # Note: Support python 3 but not python 2
 
 import sys, os, traceback
+import platform
+if 'win' in platform.system().lower():
+    IS_WIN = True
+else:
+    IS_WIN = False
 try:
     import readline #to make input() edit-able by LEFT key
 except ModuleNotFoundError:
@@ -639,7 +644,10 @@ def write_log(arg_timestamp_log, save_dir, images, pin):
 
 def sanitize(path):
     # trim multiple whitespaces
-    return os.path.basename( path.replace('  ', ' ').replace('/', '|').replace(':', '..').strip() )
+    if IS_WIN:
+        return os.path.basename( path.replace('  ', ' ').replace('/', '_').replace('\\', '_').replace(':', '..').strip() )
+    else:
+        return os.path.basename( path.replace('  ', ' ').replace('/', '|').replace(':', '..').strip() )
 
 def fetch_imgs(board, uname, board_name, section, arg_timestamp, arg_timestamp_log, arg_force_update
     , arg_dir, arg_thread_max, IMGS_SESSION, IMG_SESSION, V_SESSION, arg_cut, fs_f_max):
