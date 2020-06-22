@@ -26,7 +26,7 @@ __credits__ = ['Inspired by https://github.com/SevenLines/pinterest-board-downlo
 __license__ = 'MIT'
 # Version increase if the output file/dir naming incompatible with existing
 #, which might re-download for some files of previous version because of dir/filename not match
-__version__ = 1.1
+__version__ = 1.2
 __maintainer__ = 'Lim Kok Hole'
 __email__ = 'limkokhole@gmail.com'
 __status__ = 'Production'
@@ -624,7 +624,8 @@ def write_log(arg_timestamp_log, save_dir, images, pin):
                 story += ('\n\nMetadata: ' + repr(image['rich_metadata']))
             if story:
                 try:
-                    with open(log_path, 'a') as f:
+                    # Windows need utf-8
+                    with open(log_path, 'a', encoding='utf-8') as f:
                         f.write('[ ' + str(log_i + 1 - skipped_total) + ' ] Pin Id: ' + str(image_id) + '\n')
                         f.write(story + '\n\n')
                 except OSError: # e.g. File name too long
@@ -637,7 +638,8 @@ def write_log(arg_timestamp_log, save_dir, images, pin):
     return got_img
 
 def sanitize(path):
-    return os.path.basename( path.replace('/', '|').replace(':', '..').strip() )
+    # trim multiple whitespaces
+    return os.path.basename( path.replace('  ', ' ').replace('/', '|').replace(':', '..').strip() )
 
 def fetch_imgs(board, uname, board_name, section, arg_timestamp, arg_timestamp_log, arg_force_update
     , arg_dir, arg_thread_max, IMGS_SESSION, IMG_SESSION, V_SESSION, arg_cut, fs_f_max):
