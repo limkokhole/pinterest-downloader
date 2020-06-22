@@ -846,19 +846,21 @@ def main():
     #  255 bytes is normaly fs max, 143 bytes is eCryptfs max
     # https://unix.stackexchange.com/questions/32795/
     # To test eCryptfs: https://unix.stackexchange.com/questions/426950/
-    for fs_f_max in (255, 143):
+    for fs_f_max_i in (255, 143):
         try:
-            with open('A'*fs_f_max, 'r') as f:
-                pass
+            with open('A'*fs_f_max_i, 'r') as f:
+                fs_f_max = fs_f_max_i # if got really this long A exists will come here
+                break
         except FileNotFoundError:
             # Will throws OSError first if both FileNotFoundError and OSError met
             # , BUT if folder not exist then will throws FileNotFoundError first
             # But current directory already there, so can use this trick
             # In worst case just raise it
-            break # So fs_f_max now is the one valid
+            fs_f_max = fs_f_max_i # Normally came here in first loop
+            break
         except OSError: # e.g. File name too long
-            pass #print('Try next')
-    #print('fs filename max len is ' + str(fs_f_max))
+            pass #print('Try next') # Or here first if eCryptfs
+    #print('fs filename max len is ' + repr(fs_f_max))
     # https://github.com/ytdl-org/youtube-dl/pull/25475
     # https://stackoverflow.com/questions/54823541/what-do-f-bsize-and-f-frsize-in-struct-statvfs-stand-for
     if fs_f_max is None: # os.statvfs ,ay not avaiable in Windows, so lower priority
