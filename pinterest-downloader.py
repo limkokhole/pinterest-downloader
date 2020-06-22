@@ -44,12 +44,15 @@ try:
     done_tag = '✔'
     plus_tag = '➕'
     pinterest_logo = '🅿️'
+    # Test Windows unicode capability by printing logo, throws if not:
+    print(pinterest_logo, end='\r')
+    sys.stdout.flush()
 except UnicodeEncodeError:
     x_tag = 'x'
     done_tag = 'DONE'
     plus_tag = '+'
     pinterest_logo = 'P'
-
+    
 import argparse
 import time
 from datetime import datetime, timedelta
