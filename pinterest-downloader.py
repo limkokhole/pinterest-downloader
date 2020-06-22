@@ -24,7 +24,9 @@ __author__ = 'Lim Kok Hole'
 __copyright__ = 'Copyright 2020'
 __credits__ = ['Inspired by https://github.com/SevenLines/pinterest-board-downloader', 'S/O']
 __license__ = 'MIT'
-__version__ = 1.0
+# Version increase if the output file/dir naming incompatible with existing
+#, which might re-download for some files of previous version because of dir/filename not match
+__version__ = 1.1
 __maintainer__ = 'Lim Kok Hole'
 __email__ = 'limkokhole@gmail.com'
 __status__ = 'Production'
@@ -55,8 +57,6 @@ HIGHER_RED = Fore.LIGHTRED_EX
 BOLD_ONLY = ['bold']
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
-
-FALLBACK_MAX_LEN = (245, 240, 230, 200, 170, 135, 85)
 
 # RIP UA, https://groups.google.com/a/chromium.org/forum/m/#!msg/blink-dev/-2JIRNMWJ7s/yHe4tQNLCgAJ
 UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.0.0 Safari/537.36'
@@ -182,7 +182,7 @@ def get_user_boards(username):
 '''
 
 
-def get_pin_info(pin_id, arg_timestamp_log, arg_force_update, arg_dir, arg_cut):
+def get_pin_info(pin_id, arg_timestamp_log, arg_force_update, arg_dir, arg_cut, fs_f_max):
     s = get_session(0)
 
     r = s.get('https://www.pinterest.com/pin/{}/'.format(pin_id), timeout=30)
@@ -194,13 +194,16 @@ def get_pin_info(pin_id, arg_timestamp_log, arg_force_update, arg_dir, arg_cut):
     images = initial_data['resourceResponses'][0]['response']['data']
     #print(images.keys())
     try:
-        create_dir(arg_dir, arg_cut)
+        # This is the User Responsibilities to ensure -d is not too long
+        # Program can't automate for you, imagine -d already 2045th bytes in full path
+        #, is unwise if program make dir in parent directory.
+        create_dir(arg_dir)
         write_log( arg_timestamp_log, arg_dir, [images], images['id'] )
         IMG_SESSION = get_session(3)
         V_SESSION = get_session(4)
-        print('[i] Download Pin id: ' + images['id'] + ' in directory: ' + arg_dir)
+        print('[i] Download Pin id: ' + str(images['id']) + ' in directory: ' + arg_dir)
         printProgressBar(0, 1, prefix='[...] Downloading:', suffix='Complete', length=50)
-        download_img(images, arg_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_cut)
+        download_img(images, arg_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_cut,  fs_f_max)
         printProgressBar(1, 1, prefix='[✔] Downloaded:', suffix='Complete   ', length=50)
     except KeyError:
         return quit(traceback.format_exc())
@@ -244,9 +247,6 @@ def get_board_info(board_name, exclude_section, section):
                 for sec in i['response']['data']:
                     sections.append(sec)
         return boards, sections
-
-
-
 
 
 def fetch_boards(uname):
@@ -314,28 +314,72 @@ def fetch_boards(uname):
 
     return boards
 
-def get_output_file_path(url, arg_cut, image_id, human_fname, save_dir):
+# The filesystem limites is 255(normal) or 143((eCryptfs) bytes
+# So can't blindly [:] slice without encode first (which most downloaders do the wrong way)
+# And need decode back after slice
+# And to ensure mix sequence byte in UTF-8 and work
+#, e.g. abc𪍑𪍑𪍑
+# , need try/catch to skip next full bytes of "1" byte ascii" OR "3 bytes 我" or "4 bytes 𪍑"
+# ... by looping 4 bytes(UTF-8 max) from right to left
+# HTML5 forbid UTF-16, UTF-16/32 not encourage to use in web page
+# So only encode/decode in utf-8
+# https://stackoverflow.com/questions/13132976
+# https://stackoverflow.com/questions/50385123
+# https://stackoverflow.com/questions/11820006
+def get_max_path(arg_cut, fs_f_max, fpart_excluded_ext, ext):
+    #print('before f: ' + fpart_excluded_ext)
+    if arg_cut >= 0:
+        fpart_excluded_ext = fpart_excluded_ext[:arg_cut]
+    if ext:
+        ext_len = len(ext.encode('utf-8')) # just in case
+    else:
+        ext_len = 0
+    space_remains = fs_f_max - ext_len
+    # range([start], stop[, step])
+    # -1 step * 4 loop = -4, means looping 4 bytes(UTF-8 max) from right to left
+    for gostan in range(space_remains, space_remains - 4, -1):
+        try:
+            fpart_excluded_ext = fpart_excluded_ext.encode('utf-8')[: gostan ].decode('utf-8')
+        except UnicodeDecodeError:
+            pass #print('Calm down, this is normal: ' + str(gostan) + ' f: ' + fpart_excluded_ext)
+    #print('after f: ' + fpart_excluded_ext)
+    return fpart_excluded_ext
+
+
+def get_output_file_path(url, arg_cut, fs_f_max, image_id, human_fname, save_dir):
+
+    pin_id_str = str(image_id)
     basename = os.path.basename(url)
     _, ext = basename.split('.')
-    file_part_len = arg_cut - len('.' +  ext)
-    #print( 's:' + (str(image_id) + human_fname) )
-    pre_fname = ( str(image_id) + human_fname )[:file_part_len]
-    #print('p:' + pre_fname)
-    if len(pre_fname) == file_part_len:
-        # Prevent confuse when trailing period become '..'ext and looks like '...'
-        #, remove trailing '.' first
-        if pre_fname[-1] == '.':
-            pre_fname = pre_fname[:-1]
-        pre_fname = pre_fname[:-3] + '...'
-    else:
-        if pre_fname[-1] == '.':
-            pre_fname = pre_fname[:-1]
-    #print('l:' + str(file_part_len))
-    #print(pre_fname)
-    file_path = os.path.join(save_dir, '{}'.format( os.path.basename(pre_fname + '.' +  ext)))
+    non_cut_and_non_gotstan_field = pin_id_str + '.' +  ext
+
+    fpart_excluded_ext_before  = sanitize( human_fname )
+    #print( 'get output f:' + fpart_excluded_ext_before )
+
+    fpart_excluded_ext = get_max_path(arg_cut, fs_f_max, fpart_excluded_ext_before
+        , non_cut_and_non_gotstan_field)
+        
+    if fpart_excluded_ext:
+        if fpart_excluded_ext_before == fpart_excluded_ext: # means not truncat
+            # Prevent confuse when trailing period become '..'ext and looks like '...'
+            if fpart_excluded_ext[-1] == '.':
+                fpart_excluded_ext = fpart_excluded_ext[:-1]
+        else: # Truncated
+            # No need care if two/three/... dots, overkill to trim more and loss information
+            if fpart_excluded_ext[-1] == '.':
+                fpart_excluded_ext = fpart_excluded_ext[:-1]
+
+            fpart_excluded_ext = get_max_path(arg_cut, fs_f_max, fpart_excluded_ext
+                , '...' + non_cut_and_non_gotstan_field)
+
+            fpart_excluded_ext = fpart_excluded_ext + '...'
+
+    file_path = os.path.join(save_dir, '{}'.format( sanitize(pin_id_str + fpart_excluded_ext + '.' +  ext)))
+    #print('final f: ' + file_path)
     return file_path
 
-def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_cut):
+
+def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_cut, fs_f_max):
 
     try:
         # Using threading.Lock() if necessary
@@ -359,13 +403,16 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_
             if len(img_created_at_l) == 5:
                 img_created_at = ''.join(img_created_at_l[1:4])
             human_fname = '_'.join([human_fname, img_created_at])
-        human_fname = human_fname.replace('/', '|').replace(':', '..') # avoid DD/MM/YYYY truncated when do basename
+        # Avoid DD/MM/YYYY truncated when do basename
+        # But inside get_output_file_path got sanitize also
+        human_fname = human_fname.replace('/', '|').replace(':', '..') 
+
         #print(human_fname)
 
         if 'images' in image:
             url = image['images']['orig']['url']
 
-            file_path = get_output_file_path(url, arg_cut, image_id, human_fname, save_dir)
+            file_path = get_output_file_path(url, arg_cut, fs_f_max, image_id, human_fname, save_dir)
 
             try:
                 with open(file_path, 'r') as f:
@@ -376,38 +423,10 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_
                 # But for my code assume folder already there, so can use this trick
                 pass
             except OSError: # e.g. File name too long
-                try:
-                    #print('BEFORE: ' + file_path)
-
-                    # Fallback to try shorter path:
-                    os_err_all = True
-                    for cut_attmept in FALLBACK_MAX_LEN:
-                        if arg_cut > cut_attmept: # 2nd loop always True if 1st loop pass
-                            #print('\n[i] Fallback to 85 filename length for this image.\n')
-                            file_path = get_output_file_path(url, cut_attmept, image_id, human_fname, save_dir)
-                            try:
-                                #print('Trying... ' + file_path)
-                                #print('Trying len... ' + str(len(file_path)))
-                                with open(file_path, 'r') as f:
-                                    #print('[IMG] Fallback success !!!: ' + str(cut_attmept) + ' f: ' + file_path)
-                                    os_err_all = False
-                                    break
-                            except FileNotFoundError:
-                                #print('Not found err')
-                                os_err_all = False
-                                break
-                            except OSError: # e.g. File name still too long
-                                pass #print('is os err') # Try 2nd, 85
-                        else:
-                            raise OSError
-                    if os_err_all:
-                        #print('ALL failed: ' + file_path)
-                        raise OSError
-                except OSError: # e.g. File name still too long
-                    cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[✖] Download this image at'
-                        , file_path, 'failed :', url, '\n') ]), end='' )
-                    cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), end='' )  
-                    return quit(traceback.format_exc())
+                cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[✖] Download this image at'
+                    , file_path, 'failed :', url, '\n') ]), end='' )
+                cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), end='' )  
+                return quit(traceback.format_exc())
 
             if not os.path.exists(file_path) or arg_force_update:
                 #print(IMG_SESSION.headers)
@@ -419,9 +438,17 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_
 
                 if r.ok:
                     #print(r.text)
-                    with open(file_path, 'wb') as f:
-                        for chunk in r:
-                            f.write(chunk)
+                    try:
+                        with open(file_path, 'wb') as f:
+                            for chunk in r:
+                                f.write(chunk)
+
+                    except OSError: # e.g. File name too long
+                        cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[✖] Download this image at'
+                            , file_path, 'failed :', url, '\n') ]), end='' )
+                        cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), end='' )  
+                        return quit(traceback.format_exc())
+
                 else:
                     #cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[✖] Download this image at'
                     #, file_path, 'failed :', url, '\n') ]), end='' )
@@ -437,51 +464,22 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_
                         #double \n\n to make if unlikely same line behind thread progress bar
                         #cprint('\n\n[...] Retry with second best quality url: {}'.format(url), attrs=BOLD_ONLY)
 
-                        file_path = get_output_file_path(url, arg_cut, image_id, human_fname, save_dir)
+                        file_path = get_output_file_path(url, arg_cut, fs_f_max, image_id, human_fname, save_dir)
                         
-                        try:
-                            with open(file_path, 'r') as f:
-                                pass
-                            #print('\n\n[➕] ', end='') # konsole has issue if BOLD_ONLY with cprint with ➕
-                            # Got case replace /originals/(detected is .png by imghdr)->covert to .png replace 736x bigger size than orig's png (but compare quality is not trivial), better use orig as first choice
-                            # e.g. https://www.pinterest.com/antonellomiglio/computer/ 's https://i.pinimg.com/736x/3d/f0/88/3df088200b94f0b6b8325ae0a118b401--apple-computer-next-computer.jpg
-                            #cprint('\nRetried with second best quality url success :D {} saved to {}\n'.format(url, file_path), attrs=BOLD_ONLY)
-                        except FileNotFoundError:
-                            pass
-                        except OSError: # e.g. File name too long
-                            try:
-                                # Fallback to try shorter path:
-                                os_err_all = True
-                                for cut_attmept in FALLBACK_MAX_LEN:
-                                    if arg_cut > cut_attmept: # 2nd loop always True if 1st loop pass
-                                        #print('\n[i] Fallback to 85 filename length for this image.\n')
-                                        file_path = get_output_file_path(url, cut_attmept, image_id, human_fname, save_dir)
-                                        try:
-                                            with open(file_path, 'r') as f:
-                                                #print('[R] Fallback success !!!: ' + str(cut_attmept))
-                                                os_err_all = False
-                                                break
-                                        except FileNotFoundError:
-                                            os_err_all = False
-                                            break
-                                        except OSError: # e.g. File name still too long
-                                            pass # Try 2nd, 85
-                                    else:
-                                        raise OSError
-                                if os_err_all:
-                                    raise OSError
-                            except OSError: # e.g. File name still too long   
-                                cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[✖] Retried this image at'
-                                    , file_path, 'failed :', url, '\n') ]), end='' )
-                                cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), end='' )  
-                                return quit(traceback.format_exc())
-
                         if not os.path.exists(file_path) or arg_force_update:
                             r = IMG_SESSION.get(url, stream=True, timeout=30)
                             if r.ok:
-                                with open(file_path, 'wb') as f:
-                                    for chunk in r:
-                                        f.write(chunk)
+
+                                try:
+                                    with open(file_path, 'wb') as f:
+                                        for chunk in r:
+                                            f.write(chunk)
+                                except OSError: # e.g. File name too long
+                                    cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[✖] Retried this image at'
+                                        , file_path, 'failed :', url, '\n') ]), end='' )
+                                    cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), end='' )  
+                                    return quit(traceback.format_exc())
+
                                 #print('\n\n[➕] ', end='') # konsole has issue if BOLD_ONLY with cprint with ➕
                                 # Got case replace /originals/(detected is .png by imghdr)->covert to .png replace 736x bigger size than orig's png (but compare quality is not trivial), better use orig as first choice
                                 # e.g. https://www.pinterest.com/antonellomiglio/computer/ 's https://i.pinimg.com/736x/3d/f0/88/3df088200b94f0b6b8325ae0a118b401--apple-computer-next-computer.jpg
@@ -508,44 +506,11 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_
                 vurl = vDimensD[int(vDimens[-1])]
                 #cprint('\n\n[...] Try with best quality video: {}'.format(vurl), attrs=BOLD_ONLY)
 
-                file_path = get_output_file_path(vurl, arg_cut, image_id, human_fname, save_dir)
+                file_path = get_output_file_path(vurl, arg_cut, fs_f_max, image_id, human_fname, save_dir)
                 #print(file_path)
 
-                try:
-                    # We MUST get correct file_path first to avoid final filename != trimmed filename
-                    # ... which causes `not os.path.exists(file_path)` failed and re-download
-                    # Validate file and raise if invalid, without need write first
-                    # rf: https://stackoverflow.com/a/9532915/1074998
-                    with open(file_path, 'r') as f:
-                        pass
-                except OSError: # e.g. File name too long
-                    try:
-                        # Fallback to try shorter path:
-                        os_err_all = True
-                        for cut_attmept in FALLBACK_MAX_LEN:
-                            if arg_cut > cut_attmept: # 2nd loop always True if 1st loop pass
-                                #print('\n[i] Fallback to 85 filename length for this image.\n')
-                                file_path = get_output_file_path(vurl, cut_attmept, image_id, human_fname, save_dir)
-                                try:
-                                    with open(file_path, 'r') as f:
-                                        #print('[V] Fallback success !!!: ' + str(cut_attmept))
-                                        #print('Trimmed/valid filepath:' + file_path)
-                                        os_err_all = False
-                                        break
-                                except FileNotFoundError:
-                                    os_err_all = False
-                                    break
-                                except OSError: # e.g. File name still too long
-                                    pass #print('Fallback failed') # Try 2nd, 85
-                            else:
-                                raise OSError
-                        if os_err_all:
-                            raise OSError
-                    except OSError: # e.g. File name still too long
-                        cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[✖] Download this video at'
-                            , save_dir, 'failed :', vurl, '\n') ]), end='' )
-                        cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), end='' )  
-                        return quit(traceback.format_exc()) 
+                # We MUST get correct file_path first to avoid final filename != trimmed filename
+                # ... which causes `not os.path.exists(file_path)` failed and re-download
 
                 if not os.path.exists(file_path) or arg_force_update:
                     
@@ -555,9 +520,16 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_
 
                     if r.ok:
                         #print(r.text)
-                        with open(file_path, 'wb') as f:
-                            for chunk in r:
-                                f.write(chunk)
+                        try:
+                            with open(file_path, 'wb') as f:
+                                for chunk in r:
+                                    f.write(chunk)
+                        except OSError: # e.g. File name still too long
+                            cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[✖] Download this video at'
+                                , save_dir, 'failed :', vurl, '\n') ]), end='' )
+                            cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), end='' )  
+                            return quit(traceback.format_exc()) 
+
                     else:
                         cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[✖] Download this video at'
                             , save_dir, 'failed :', vurl, '\n') ]), end='' )
@@ -567,34 +539,27 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_
         return quit(traceback.format_exc())
 
 
-def create_dir(save_dir, arg_cut):
+def create_dir(save_dir):
 
     try:
         os.makedirs(save_dir)
     except FileExistsError: # Check this first to avoid OSError cover this
         pass # Normal if re-download
     except OSError: # e.g. File name too long 
-        # I reproduce/test by make OSError prior to FileExistsError
-        #, but in real-world may only happen if using eCryptfs filesystem (or exceed total path 4096 bytes)
-        #... bcoz (see -c note) title max is 50*3 bytes = 150 bytes which is less than normal max 255 bytes
-        cprint(''.join([ HIGHER_RED, '\n{}'.format(traceback.format_exc()) ]), end='' )  
-        cprint('[!] Trying to split path and trim because path too long.', attrs=BOLD_ONLY)
-        save_dir_orig = save_dir
-        save_dir_l = []
-        for sd in save_dir.split(os.sep):
-            save_dir_l.append(sd[:arg_cut])
-        save_dir = os.sep.join(save_dir_l)
-        cprint('Long Path: ' + save_dir_orig + '\n\nsplit to\n\nShort Path: ' + save_dir, attrs=BOLD_ONLY)
-        try:
-            os.makedirs(save_dir)
-        except FileExistsError: # Check this first to avoid OSError cover this
-            pass # Normal if re-download
-        except OSError: 
-            cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), end='' )  
-            return quit(traceback.format_exc())
-    except:
-        return quit(traceback.format_exc())
 
+        # Only need to care for individual path component
+        #, i.e. os.statvfs('./').f_namemax - 1 = 255(normal fs) or 143(eCryptfs) )
+        #, not full path( os.statvfs('./').f_frsize - 1 = 2045)
+        # Overkill seems even you do extra work to truncate path, then what if user give arg_dir at
+        # ... 2045th path? how is it possible create new dir/file from that point?
+        # So only need to care for individual component 
+        #... which max total(estimate) is uname 100 + (boardname 50*4)+( section 50*3) = ~450 bytes only.
+        # Then add max file 255 - 705, still far away from 2045th byte(or 335 4_bytes utf-8)
+        # So you direct throws OSError enough to remind that user don't make insane fs hier
+
+        cprint(''.join([ HIGHER_RED, '%s' % ('\nIt might causes by too long(2045 bytes) in full path.\
+        You may want to to use -d <other path> OR -c <Maximum length of filename>.\n\n') ]), end='' )  
+        raise
 
 def write_log(arg_timestamp_log, save_dir, images, pin):
 
@@ -602,20 +567,20 @@ def write_log(arg_timestamp_log, save_dir, images, pin):
     
     if arg_timestamp_log:
         if pin:
-            log_timestamp = 'log_' + str(pin) + '_' + datetime.now().strftime('%Y-%m-%d %H.%M.%S')
+            log_timestamp = 'log-pinterest-downloader_' + str(pin) + '_' + datetime.now().strftime('%Y-%m-%d %H.%M.%S')
         else: # None
-            log_timestamp = 'log_' + datetime.now().strftime('%Y-%m-%d %H.%M.%S')
+            log_timestamp = 'log-pinterest-downloader_' + datetime.now().strftime('%Y-%m-%d %H.%M.%S')
     else:
         if pin:
-            log_timestamp = 'log_' + str(pin)
+            log_timestamp = 'log-pinterest-downloader_' + str(pin)
         else:
-            log_timestamp = 'log'
-    log_path = os.path.join(save_dir, '{}'.format( os.path.basename(log_timestamp + '.log' )))
+            log_timestamp = 'log-pinterest-downloader'
+    log_path = os.path.join(save_dir, '{}'.format( sanitize(log_timestamp + '.log' )))
     #print('log_path: ' + log_path)
 
     if images:
         with open(log_path, 'w') as f: # Reset before append
-            pass
+            f.write('Pinterest Downloader: Version 1.1\n\n') # Easy to recognize if future want to change something
         skipped_total = 0
         for log_i, image in enumerate(images):
             if 'id' not in image:
@@ -654,9 +619,11 @@ def write_log(arg_timestamp_log, save_dir, images, pin):
 
     return got_img
 
+def sanitize(path):
+    return os.path.basename( path.replace('/', '|').replace(':', '..').strip() )
 
 def fetch_imgs(board, uname, board_name, section, arg_timestamp, arg_timestamp_log, arg_force_update
-    , arg_dir, arg_thread_max, IMGS_SESSION, IMG_SESSION, V_SESSION, arg_cut):
+    , arg_dir, arg_thread_max, IMGS_SESSION, IMG_SESSION, V_SESSION, arg_cut, fs_f_max):
     
     bookmark = None
     images = []
@@ -693,10 +660,17 @@ Please ensure your username/boardname or link has media item.\n') )
         return quit(traceback.format_exc() + '\n[!] Something wrong with Pinterest URL. Please report this issue at https://github.com/limkokhole/pinterest-downloader/issues , thanks.') 
 
     if section:
-        save_dir = os.path.join(arg_dir, os.path.basename(uname), os.path.basename(board_name_folder + timestamp_d), section_folder)
+        # Put -1 fot arg_cut arg bcoz don't want cut on directory
+        # to avoid cut become empty (or provide new arg -c-cut-directory
+        # , but overcomplicated and in reality who want to cut dir?
+        # ... Normally only want cut filename bcoz of included title/description )
+        save_dir = os.path.join( arg_dir,  get_max_path(-1, fs_f_max, sanitize(uname), None)
+            , get_max_path(-1, fs_f_max, sanitize(board_name_folder + timestamp_d), None)
+            , get_max_path(-1, fs_f_max, sanitize(section_folder), None) )
         url = '/' + '/'.join((uname, board_name, section)) + '/'
     else:
-        save_dir = os.path.join(arg_dir, os.path.basename(uname), os.path.basename(board_name_folder + timestamp_d))
+        save_dir = os.path.join( arg_dir,  get_max_path(-1, fs_f_max, sanitize(uname), None)
+            , get_max_path(-1, fs_f_max, sanitize(board_name_folder + timestamp_d), None))
         # If boardname in url is lowercase but title startswith ' which quotes to %22 and cause err
         #... So don't use board_name_folder as board_name in url below to call API
         url = '/'.join((uname, board_name))
@@ -740,9 +714,11 @@ Please ensure your username/boardname or link has media item.\n') )
             i_len = 0
         # Got end='' here also not able make flush work
         if section:
-            print('\r[...] Getting all images in this section: {}/{} ... [ {} / ? ]'.format(board_name, section, str(i_len)), end='')
+            print('\r[...] Getting all images in this section: {}/{} ... [ {} / ? ]'
+                .format(board_name, section, str(i_len)), end='')
         else:
-            print('\r[...] Getting all images in this board: {} ... [ {} / ? ]'.format(board_name, str(i_len)), end='')
+            print('\r[...] Getting all images in this board: {} ... [ {} / ? ]'
+                .format(board_name, str(i_len)), end='')
         sys.stdout.flush()
 
         post_d = urllib.parse.urlencode({
@@ -759,9 +735,11 @@ Please ensure your username/boardname or link has media item.\n') )
         #print('[imgs] called headers: ' + repr(IMGS_SESSION.headers))
 
         if section:
-            r = IMGS_SESSION.get('https://www.pinterest.com/resource/BoardSectionPinsResource/get/', params=post_d, timeout=30)
+            r = IMGS_SESSION.get('https://www.pinterest.com/resource/BoardSectionPinsResource/get/'
+                , params=post_d, timeout=30)
         else:
-            r = IMGS_SESSION.get('https://www.pinterest.com/resource/BoardFeedResource/get/', params=post_d, timeout=30)
+            r = IMGS_SESSION.get('https://www.pinterest.com/resource/BoardFeedResource/get/'
+                , params=post_d, timeout=30)
 
         #print('Imgs url ok: ' + str(r.ok))
         #print('Imgs url: ' + r.url)
@@ -773,11 +751,12 @@ Please ensure your username/boardname or link has media item.\n') )
 
         bookmark = data['resource']['options']['bookmarks'][0]
 
-    create_dir(save_dir, arg_cut)
+    create_dir(save_dir)
     got_img = write_log(arg_timestamp_log, save_dir, images, None)
 
     if got_img:
         # From what I observed, always got extra index is not media, so better -1
+        # And no point to loop above and detect early, overkill
         print(' [➕] Found estimated {} images'.format(len(images) - 1))
     else: # empty section
         print('\n[i] No item found.')
@@ -789,36 +768,45 @@ Please ensure your username/boardname or link has media item.\n') )
 
         # Create threads
         futures = {executor.submit(download_img, image, save_dir, arg_force_update
-                , IMG_SESSION, V_SESSION, arg_cut) for image in images}
+                , IMG_SESSION, V_SESSION, arg_cut, fs_f_max) for image in images}
 
         # as_completed() gives you the threads once finished
         for index, f in enumerate(as_completed(futures)):
             # Get the results
             # rs = f.result()
             # print('done')
-            printProgressBar(index + 1, len(images), prefix='[...] Downloading:', suffix='Complete', length=50)
+            printProgressBar(index + 1, len(images), prefix='[...] Downloading:'
+                , suffix='Complete', length=50)
 
-    # Need suffix with extra 3 spaces to replace previos longer ... + Downloading->ed line to avoid see wrong word "Complete"
-    printProgressBar(len(images), len(images), prefix='[✔] Downloaded:', suffix='Complete   ', length=50)
+    # Need suffix with extra 3 spaces to replace previos longer ... + Downloading->ed line
+    # ... to avoid see wrong word "Complete"
+    printProgressBar(len(images), len(images), prefix='[✔] Downloaded:'
+        , suffix='Complete   ', length=50)
 
     print()
 
 
 def main():
+
+    start_time = int(time.time())
+
     arg_parser = argparse.ArgumentParser(description='Download ALL board/section from 🅿️interest by username, username/boardname, username/boardname/section or link. Support image and video.\n\
-        Filename compose of PinId_Title_Description_Date.Ext. PinId always there while the rest is optional.')
+        Filename compose of PinId_Title_Description_Date.Ext. PinId always there while the rest is optional.\n\
+        If filename too long will endswith ... and you can check details in log-pinterest-downloader.log file.')
     arg_parser.add_argument('path', nargs='?', help='Pinterest username, or username/boardname, or link( /pin/ may include created time )')
-    arg_parser.add_argument('-d', '-dir', dest='dir', type=str, default='images', help='Specify folder path/name to store. Default is "images"')
+    arg_parser.add_argument('-d', '--dir', dest='dir', type=str, default='images', help='Specify folder path/name to store. Default is "images"')
     arg_parser.add_argument('-j', '--job', dest='thread_max', type=int, default=0, help='Specify maximum threads when downloading images. Default is number of processors on the machine, multiplied by 5')
     # Username or Boardname might longer than 255 bytes
     # Username max is 100(not allow 3 bytes unicode)
-    # Boardname(Title) max is 50(count as singe char(i.e. 3 bytes unicode same as 1 byte ASCII), not bytes)
+    # Section/Boardname(Title) max are 50(count as singe char(i.e. 3 bytes unicode same as 1 byte ASCII), not bytes)
+    # Board not possible create 4 bytes UTF-8 (become empty // or trim, lolr)
     # Description is 500, source_url(link) is 2048 (but not able save even though no error)
     # Pin Title is max 100 , which emoji count as 2 bytes per glyph (Chinese char still count as 1 per glyph)
-    arg_parser.add_argument('-c', '--cut', type=int, default=255, help='Specify maximum length of filename. Default is 255 and retry with fallback(filename-only) towards 85 automatically. \n\
-        Username or boardname will use this option too if too long. Minimum 24.') # id 17 + ... + . + ext(jpeg) = 24
+    # [UPDATE] now --cut is per glyph, not byte, which is most users expected
+    #, whereas bytes should detect by program (244/143) or raise by simply use -c <short value> to solve
+    arg_parser.add_argument('-c', '--cut', type=int, default=-1, help='Specify maximum length of "_TITLE_DESCRIPTION_DATE"(exclude ...) in filename.')
     arg_parser.add_argument('-bt', '--board-timestamp', dest='board_timestamp', action='store_true', help='Suffix board directory name with unique timestamp')
-    arg_parser.add_argument('-lt', '--log-timestamp', dest='log_timestamp', action='store_true', help='Suffix log.log filename with unique timestamp. Default filename is log.log.\n\
+    arg_parser.add_argument('-lt', '--log-timestamp', dest='log_timestamp', action='store_true', help='Suffix log-pinterest-downloader.log filename with unique timestamp. Default filename is log-pinterest-downloader.log.\n\
         Note: Pin id without Title/Description/Link/Metadata/Created_at will not write to log.')
     arg_parser.add_argument('-f', '--force', action='store_true', help='Force re-download even if image already exist')
     arg_parser.add_argument('-es', '--exclude-section', dest='exclude_section', action='store_true', help='Exclude sections if download from username or board.')
@@ -826,6 +814,9 @@ def main():
         args, remaining  = arg_parser.parse_known_args()
     except SystemExit: # Normal if --help, catch here to avoid main() global ex catch it
         return
+    if remaining:
+        return quit( ['You type redundant options: ' + ' '.join(remaining)
+            , 'Please check your command or --help to see options manual.' ])
 
     if not args.path:
         args.path = input('Username/Boardname/Section or Link: ').strip()
@@ -851,10 +842,29 @@ def main():
     if len(slash_path) > 3:
         return quit('[!] Something wrong with Pinterest URL. Please report this issue at https://github.com/limkokhole/pinterest-downloader/issues , thanks.') 
 
-    if args.cut < 24:
-        args.cut = 255 # User probably no idea what is this len for, if negative
+    fs_f_max = None
+    #  255 bytes is normaly fs max, 143 bytes is eCryptfs max
+    # https://unix.stackexchange.com/questions/32795/
+    # To test eCryptfs: https://unix.stackexchange.com/questions/426950/
+    for fs_f_max in (255, 143):
+        try:
+            with open('A'*fs_f_max, 'r') as f:
+                pass
+        except FileNotFoundError:
+            # Will throws OSError first if both FileNotFoundError and OSError met
+            # , BUT if folder not exist then will throws FileNotFoundError first
+            # But current directory already there, so can use this trick
+            # In worst case just raise it
+            break # So fs_f_max now is the one valid
+        except OSError: # e.g. File name too long
+            pass #print('Try next')
+    #print('fs filename max len is ' + str(fs_f_max))
+    # https://github.com/ytdl-org/youtube-dl/pull/25475
+    # https://stackoverflow.com/questions/54823541/what-do-f-bsize-and-f-frsize-in-struct-statvfs-stand-for
+    if fs_f_max is None: # os.statvfs ,ay not avaiable in Windows, so lower priority
+        #os.statvfs('.').f_frsize - 1 = 4095 # full path max bytes
+        fs_f_max = os.statvfs('.').f_namemax
 
-    start_time = int(time.time())
     if len(slash_path) == 2:
         # may copy USERNAME/boards/ links
         if slash_path[-1].strip() == 'boards':
@@ -863,7 +873,7 @@ def main():
             print('[i] Job is download video/image of single pin page.')
             pin_id = slash_path[-1] #bk first before reset 
             slash_path = [] # reset for later in case exception
-            get_pin_info(pin_id.strip(), args.log_timestamp, args.force, args.dir, args.cut)
+            get_pin_info(pin_id.strip(), args.log_timestamp, args.force, args.dir, args.cut, fs_f_max)
 
     if len(slash_path) == 3:
         u_url = '/'.join(slash_path)
@@ -878,7 +888,7 @@ def main():
             V_SESSION = get_session(4)
             fetch_imgs( board, slash_path[-3], slash_path[-2], slash_path[-1], args.board_timestamp
                 , args.log_timestamp, args.force, args.dir, args.thread_max
-                , IMGS_SESSION, IMG_SESSION, V_SESSION, args.cut )
+                , IMGS_SESSION, IMG_SESSION, V_SESSION, args.cut, fs_f_max )
         except KeyError:
             return quit(traceback.format_exc())
 
@@ -893,7 +903,7 @@ def main():
             IMG_SESSION = get_session(3)
             V_SESSION = get_session(4)
             fetch_imgs( board, slash_path[-2], slash_path[-1], None, args.board_timestamp, args.log_timestamp, args.force
-            , args.dir, args.thread_max, IMGS_SESSION, IMG_SESSION, V_SESSION, args.cut )
+            , args.dir, args.thread_max, IMGS_SESSION, IMG_SESSION, V_SESSION, args.cut, fs_f_max )
             if sections:
                 sec_c = len(sections)
                 print('[i] Trying to get ' + str(sec_c) + ' section{}'.format('s' if sec_c > 1 else ''))
@@ -902,7 +912,7 @@ def main():
                     board = get_board_info(s_url, False, sec['slug']) # False not using bcoz sections not [] already
                     fetch_imgs( board, slash_path[-2], slash_path[-1], sec['slug'], args.board_timestamp
                         , args.log_timestamp, args.force, args.dir, args.thread_max
-                        , IMGS_SESSION, IMG_SESSION, V_SESSION, args.cut )
+                        , IMGS_SESSION, IMG_SESSION, V_SESSION, args.cut, fs_f_max )
 
         except KeyError:
             return quit(traceback.format_exc())
@@ -925,8 +935,9 @@ def main():
 
                 board_name = board['name']
                 board['owner']['id'] = board['id']
-                fetch_imgs( board, slash_path[-1], board_name, None, args.board_timestamp, args.log_timestamp, args.force
-                , args.dir, args.thread_max, IMGS_SESSION, IMG_SESSION, V_SESSION, args.cut )
+                fetch_imgs( board, slash_path[-1], board_name, None, args.board_timestamp, args.log_timestamp
+                    , args.force, args.dir, args.thread_max, IMGS_SESSION, IMG_SESSION, V_SESSION
+                    , args.cut, fs_f_max )
                 if (not args.exclude_section) and (board['section_count'] > 0):
                     sec_c = board['section_count']
                     print('[i] Trying to get ' + str(sec_c) + ' section{}'.format('s' if sec_c > 1 else ''))
@@ -944,7 +955,7 @@ def main():
                         sec_uname, sec_bname = u_url.split('/')
                         fetch_imgs( board, sec_uname, sec_bname, sec['slug'], args.board_timestamp
                             , args.log_timestamp, args.force, args.dir, args.thread_max
-                            , IMGS_SESSION, IMG_SESSION, V_SESSION, args.cut )
+                            , IMGS_SESSION, IMG_SESSION, V_SESSION, args.cut, fs_f_max )
 
         except KeyError:
             return quit(traceback.format_exc())

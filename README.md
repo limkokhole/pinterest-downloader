@@ -11,7 +11,7 @@ Download all images/videos from Pinterest user/board/section.
 - [x] Able download both image and video.
 - [x] Multi-threads when download images.
 - [x] Media Filename naming in PinID_Title_Description_[Date].Ext meaningful form. 
-- [x] Media Filename truncate to ... fit maximum length automatically.
+- [x] Media Filename truncate to ... fit maximum filename length automatically. -c to cut if you prefer.
 - [x] Log PinID, Title, Description, Link, Metadata, [Date] to log.log file since media filename can't fit.
 - [x] Unique board/log name with timestamp options.
 
@@ -25,7 +25,8 @@ Download all images/videos from Pinterest user/board/section.
     Download ALL board/section from 🅿️interest by username, username/boardname,
     username/boardname/section or link. Support image and video. Filename compose
     of PinId_Title_Description_Date.Ext. PinId always there while the rest is
-    optional.
+    optional. If filename too long will endswith ... and you can check details in
+    log-pinterest-downloader.log file.
 
     positional arguments:
     path                  Pinterest username, or username/boardname, or link(
@@ -33,19 +34,18 @@ Download all images/videos from Pinterest user/board/section.
 
     optional arguments:
     -h, --help            show this help message and exit
-    -d DIR, -dir DIR      Specify folder path/name to store. Default is "images"
+    -d DIR, --dir DIR     Specify folder path/name to store. Default is "images"
     -j THREAD_MAX, --job THREAD_MAX
                             Specify maximum threads when downloading images.
                             Default is number of processors on the machine,
                             multiplied by 5
-    -c CUT, --cut CUT     Specify maximum length of filename. Default is 255 and
-                            retry with fallback(filename-only) towards 85
-                            automatically. Username or boardname will use this
-                            option too if too long. Minimum 24.
+    -c CUT, --cut CUT     Specify maximum length of
+                            "_TITLE_DESCRIPTION_DATE"(exclude ...) in filename.
     -bt, --board-timestamp
                             Suffix board directory name with unique timestamp
-    -lt, --log-timestamp  Suffix log.log filename with unique timestamp. Default
-                            filename is log.log. Note: Pin id without
+    -lt, --log-timestamp  Suffix log-pinterest-downloader.log filename with
+                            unique timestamp. Default filename is log-pinterest-
+                            downloader.log. Note: Pin id without
                             Title/Description/Link/Metadata/Created_at will not
                             write to log.
     -f, --force           Force re-download even if image already exist
@@ -64,9 +64,9 @@ Download all images/videos from Pinterest user/board/section.
 
 ### Example Output:
     xb@dnxb:~/Downloads/pinterest/pinterest-downloader$ python3 pinterest-downloader.py -d comp https://www.pinterest.com/antonellomiglio/computer/ 
-    [i] Job is download single board by username/boardname: antonellomiglio/computer                                                                      
-    [...] Getting all images in this board: computer ... [ 173 / ? ] [➕] Found estimated 195 images                                                       
+    [i] Job is download single board by username/boardname: antonellomiglio/computer
+    [...] Getting all images in this board: computer ... [ 173 / ? ] [➕] Found estimated 195 images
     [✔] Downloaded: |##################################################| 100.0% Complete   
-    [i] Time Spent: 0:00:17
+    [i] Time Spent: 0:00:06
     xb@dnxb:~/Downloads/pinterest/pinterest-downloader$
 
