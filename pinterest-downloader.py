@@ -26,7 +26,7 @@ __credits__ = ['Inspired by https://github.com/SevenLines/pinterest-board-downlo
 __license__ = 'MIT'
 # Version increase if the output file/dir naming incompatible with existing
 #, which might re-download for some files of previous version because of dir/filename not match
-__version__ = 1.4
+__version__ = 1.5
 __maintainer__ = 'Lim Kok Hole'
 __email__ = 'limkokhole@gmail.com'
 __status__ = 'Production'
@@ -647,7 +647,7 @@ def write_log(arg_timestamp_log, save_dir, images, pin):
 def sanitize(path):
     # trim multiple whitespaces
     if IS_WIN:
-        return os.path.basename( path.replace('  ', ' ').replace('/', '_').replace('\\', '_').replace(':', '..').strip() )
+        return os.path.basename( path.replace('  ', ' ').replace('/', '_').replace('\\', '_').replace('|', '_').replace(':', '..').strip() )
     else:
         return os.path.basename( path.replace('  ', ' ').replace('/', '|').replace(':', '..').strip() )
 
