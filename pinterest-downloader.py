@@ -26,7 +26,7 @@ __credits__ = ['Inspired by https://github.com/SevenLines/pinterest-board-downlo
 __license__ = 'MIT'
 # Version increase if the output file/dir naming incompatible with existing
 #, which might re-download for some files of previous version because of dir/filename not match
-__version__ = 1.3
+__version__ = 1.4
 __maintainer__ = 'Lim Kok Hole'
 __email__ = 'limkokhole@gmail.com'
 __status__ = 'Production'
@@ -35,7 +35,9 @@ __status__ = 'Production'
 
 import sys, os, traceback
 import platform
-if 'win' in platform.system().lower():
+plat = platform.system().lower()
+if ('window' in plat) or plat.startswith('win'):
+    # Darwin should treat as Linux
     IS_WIN = True
 else:
     IS_WIN = False
