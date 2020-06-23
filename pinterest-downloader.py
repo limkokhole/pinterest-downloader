@@ -39,12 +39,19 @@ plat = platform.system().lower()
 if ('window' in plat) or plat.startswith('win'):
     # Darwin should treat as Linux
     IS_WIN = True
+    # https://stackoverflow.com/questions/16755142/how-to-make-win32-console-recognize-ansi-vt100-escape-sequences
+    # Even though ANSI escape sequence can be enable via `REG ADD HKCU\CONSOLE /f /v VirtualTerminalLevel /t REG_DWORD /d 1`
+    # But since this is not big deal to hide logo testing for this project, so no need.
+    ANSI_CLEAR = '\r' # Default cmd settings not support ANSI sequence
 else:
     IS_WIN = False
+    ANSI_CLEAR = '\r\x1b[0m\x1b[K'
 try:
     import readline #to make input() edit-able by LEFT key
 except ModuleNotFoundError:
-    pass
+    if not IS_WIN: #pyreadline for Windows? overkill
+        print('Please install readline module.')
+        raise
 
 try:
     x_tag = '✖'
@@ -52,8 +59,7 @@ try:
     plus_tag = '➕'
     pinterest_logo = '🅿️'
     # Test Windows unicode capability by printing logo, throws if not:
-    print(pinterest_logo, end='\r')
-    sys.stdout.flush()
+    print(pinterest_logo, end=ANSI_CLEAR, flush=True)
 except UnicodeEncodeError:
     x_tag = 'x'
     done_tag = 'DONE'
@@ -859,7 +865,7 @@ def main():
     if url_path.endswith('/'):
         url_path = url_path[:-1]
     if '://' in url_path:
-        url_path = '/'.join(url_path.split('://')[1:][0].split('/')[1:])
+        url_path = '/'.join( url_path.split('/')[3:] )
         if not url_path:
             return quit('{} {} {}'.format('\n[' + x_tag + '] Neither username/boardname nor valid link: ', args.path, '\n') )
     if url_path.startswith('/'):
@@ -868,7 +874,9 @@ def main():
     if '.' in slash_path[0]:
         # Impossible dot in username, so it means host without https:// and nid remove
         slash_path = slash_path[1:]
-    if len(slash_path) > 3:
+    if len(slash_path) == 0:
+        return quit('{} {} {}'.format('\n[' + x_tag + '] Neither username/boardname nor valid link: ', args.path, '\n') )
+    elif len(slash_path) > 3:
         return quit('[!] Something wrong with Pinterest URL. Please report this issue at https://github.com/limkokhole/pinterest-downloader/issues , thanks.') 
 
     fs_f_max = None
