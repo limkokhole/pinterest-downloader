@@ -34,6 +34,7 @@ __status__ = 'Production'
 # Note: Support python 3 but not python 2
 
 import sys, os, traceback
+from pathlib import PurePath
 import platform
 plat = platform.system().lower()
 if ('window' in plat) or plat.startswith('win'):
@@ -228,7 +229,7 @@ def get_pin_info(pin_id, arg_timestamp_log, arg_force_update, arg_dir, arg_cut, 
         # Program can't automate for you, imagine -d already 2045th bytes in full path
         #, is unwise if program make dir in parent directory.
         create_dir(arg_dir)
-        write_log( arg_timestamp_log, arg_dir, [images], images['id'] )
+        write_log( arg_timestamp_log, arg_dir, [images], images['id'], arg_cut )
         IMG_SESSION = get_session(3)
         V_SESSION = get_session(4)
         print('[i] Download Pin id: ' + str(images['id']) + ' in directory: ' + arg_dir)
@@ -344,6 +345,31 @@ def fetch_boards(uname):
 
     return boards
 
+
+def sanitize(path):
+    # trim multiple whitespaces # ".." is the responsibilities of get max path
+
+    #If using .replace('  ', ' ') will only replace once round, e.g. '    ' become 
+    path = ' '.join(path.split()) 
+
+    if IS_WIN:
+        # Use PurePath instead of os.path.basename  https://stackoverflow.com/a/31273488/1074998 , e.g.:
+        #>>> PurePath( '/home/iced/..'.replace('..', '') ).parts[-1] # get 'iced'
+        #>>> os.path.basename('/home/iced/..'.replace('..', '')) # get empty ''
+        # Ensure .replace('..', '') is last replacement before .strip() AND not replace back to dot '.'
+        p = PurePath( path.replace('/', '_').replace('\\', '_').replace('|', '_').replace(':', '_').replace('..', '_').strip() )
+        if p.parts:
+            return p.parts[-1]
+        else:
+            return ''
+    else:
+        p = PurePath( path.replace('/', '|').replace(':', '_').replace('..', '_').strip() )
+        if p.parts:
+            return p.parts[-1]
+        else:
+            return ''
+
+
 # The filesystem limits is 255(normal) or 143((eCryptfs) bytes
 # So can't blindly [:] slice without encode first (which most downloaders do the wrong way)
 # And need decode back after slice
@@ -376,19 +402,24 @@ def get_max_path(arg_cut, fs_f_max, fpart_excluded_immutable, immutable):
             pass #print('Calm down, this is normal: ' + str(gostan) + ' f: ' + fpart_excluded_immutable)
     #print('after f: ' + fpart_excluded_immutable)
     # Last safety resort, in case any bug:
-    fpart_excluded_immutable_base = os.path.basename( fpart_excluded_immutable )
+    fpart_excluded_immutable_base = sanitize ( fpart_excluded_immutable )
     if fpart_excluded_immutable_base != fpart_excluded_immutable:
-        cprint('\nPlease report to me which Link/scenario it print this log. Thanks: {} # {} # {} # {}\n'
-            .format(arg_cut, fs_f_max, fpart_excluded_immutable, immutable), attrs=BOLD_ONLY)
+        cprint(''.join([ HIGHER_RED, '\n[! A] Please report to me which Link/scenario it print this log.\
+            Thanks: {} # {} # {} # {}\n\n'
+            .format(arg_cut, fs_f_max, fpart_excluded_immutable, immutable) ]), attrs=BOLD_ONLY, end='' )  
     return fpart_excluded_immutable_base
 
 
 def get_output_file_path(url, arg_cut, fs_f_max, image_id, human_fname, save_dir):
 
-    pin_id_str = str(image_id)
-    basename = os.path.basename(url)
+    pin_id_str = sanitize(str(image_id))
+    basename = os.path.basename(url) # basename not enough to handle '..', but will sanitize later
+    # throws ValueError is fine bcoz it's not normal 
     _, ext = basename.split('.')
-    immutable = pin_id_str + '.' +  ext
+    ext = sanitize(ext)
+    # Currently not possible ..jpg here bcoz above must single '.' do not throws
+    # , even replace ..jpg to _.jpg is fine, just can't preview in explorer only 
+    immutable = sanitize( pin_id_str + '.' +  ext )
 
     fpart_excluded_ext_before  = sanitize( human_fname )
     #print( 'get output f:' + fpart_excluded_ext_before )
@@ -411,7 +442,24 @@ def get_output_file_path(url, arg_cut, fs_f_max, image_id, human_fname, save_dir
 
             fpart_excluded_ext = fpart_excluded_ext + '...'
 
-    file_path = os.path.join(save_dir, '{}'.format( sanitize(pin_id_str + fpart_excluded_ext + '.' +  ext)))
+    
+    file_path = os.path.join(save_dir, '{}'.format( pin_id_str + fpart_excluded_ext + '.' +  ext))
+    try:
+        if PurePath(os.path.abspath(save_dir)).parts[:] != PurePath(os.path.abspath(file_path)).parts[:-1]:
+            cprint(''.join([ HIGHER_RED, '\n[! B] Please report to me which Link/scenario it print this log.\
+                Thanks: {} # {} # {} # {} # {} \n\n'
+                .format(arg_cut, fs_f_max, pin_id_str + fpart_excluded_ext + '.' +  ext, save_dir, file_path) ]), attrs=BOLD_ONLY, end='' )  
+            file_path = os.path.join(save_dir, '{}'.format( sanitize(pin_id_str + fpart_excluded_ext + '.' +  ext)))
+            if PurePath(os.path.abspath(save_dir)).parts[:] != PurePath(os.path.abspath(file_path)).parts[:-1]:
+                cprint(''.join([ HIGHER_RED, '\n[! C] Please report to me which Link/scenario it print this log.\
+                    Thanks: {} # {} # {} # {} # {} \n\n'
+                    .format(arg_cut, fs_f_max, pin_id_str + fpart_excluded_ext + '.' +  ext, save_dir, file_path) ]), attrs=BOLD_ONLY, end='' )  
+                raise
+    except IndexError:
+        cprint(''.join([ HIGHER_RED, '\n[! D] Please report to me which Link/scenario it print this log.\
+            Thanks: {} # {} # {}\n\n'
+            .format(arg_cut, fs_f_max, pin_id_str + fpart_excluded_ext + '.' +  ext) ]), attrs=BOLD_ONLY, end='' )  
+        raise
     #print('final f: ' + file_path)
     return file_path
 
@@ -598,7 +646,7 @@ def create_dir(save_dir):
         You may want to to use -d <other path> OR -c <Maximum length of filename>.\n\n') ]), attrs=BOLD_ONLY, end='' )  
         raise
 
-def write_log(arg_timestamp_log, save_dir, images, pin):
+def write_log(arg_timestamp_log, save_dir, images, pin, arg_cut):
 
     got_img = False
     
@@ -612,6 +660,8 @@ def write_log(arg_timestamp_log, save_dir, images, pin):
             log_timestamp = 'log-pinterest-downloader_' + str(pin)
         else:
             log_timestamp = 'log-pinterest-downloader'
+    # sanitize enough, no nid max path in case PIN id too long, throws err (too long path)
+    # to inform me better than silently guess to slice [:100] early and hide this issue
     log_path = os.path.join(save_dir, '{}'.format( sanitize(log_timestamp + '.log' )))
     #print('log_path: ' + log_path)
 
@@ -657,12 +707,6 @@ def write_log(arg_timestamp_log, save_dir, images, pin):
 
     return got_img
 
-def sanitize(path):
-    # trim multiple whitespaces
-    if IS_WIN:
-        return os.path.basename( path.replace('  ', ' ').replace('/', '_').replace('\\', '_').replace('|', '_').replace(':', '_').strip() )
-    else:
-        return os.path.basename( path.replace('  ', ' ').replace('/', '|').replace(':', '_').strip() )
 
 def fetch_imgs(board, uname, board_name, section, arg_timestamp, arg_timestamp_log, arg_force_update
     , arg_dir, arg_thread_max, IMGS_SESSION, IMG_SESSION, V_SESSION, arg_cut, fs_f_max):
@@ -794,7 +838,7 @@ Please ensure your username/boardname or link has media item.\n') )
         bookmark = data['resource']['options']['bookmarks'][0]
 
     create_dir(save_dir)
-    got_img = write_log(arg_timestamp_log, save_dir, images, None)
+    got_img = write_log(arg_timestamp_log, save_dir, images, None, arg_cut)
 
     if got_img:
         # From what I observed, always got extra index is not media, so better -1
