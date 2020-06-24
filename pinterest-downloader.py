@@ -370,7 +370,7 @@ def sanitize(path):
             return ''
 
 
-# The filesystem limits is 255(normal) or 143((eCryptfs) bytes
+# The filesystem limits is 255(normal) , 242(docker) or 143((eCryptfs) bytes
 # So can't blindly [:] slice without encode first (which most downloaders do the wrong way)
 # And need decode back after slice
 # And to ensure mix sequence byte in UTF-8 and work
@@ -635,7 +635,7 @@ def create_dir(save_dir):
     except OSError: # e.g. File name too long 
 
         # Only need to care for individual path component
-        #, i.e. os.statvfs('./').f_namemax - 1 = 255(normal fs) or 143(eCryptfs) )
+        #, i.e. os.statvfs('./').f_namemax = 255(normal fs), 242(docker) or 143(eCryptfs) )
         #, not full path( os.statvfs('./').f_frsize - 1 = 2045)
         # Overkill seems even you do extra work to truncate path, then what if user give arg_dir at
         # ... 2045th path? how is it possible create new dir/file from that point?
@@ -891,7 +891,7 @@ def main():
     # Description is 500, source_url(link) is 2048 (but not able save even though no error)
     # Pin Title is max 100 , which emoji count as 2 bytes per glyph (Chinese char still count as 1 per glyph)
     # [UPDATE] now --cut is per glyph, not byte, which is most users expected
-    #, whereas bytes should detect by program (244/143) or raise by simply use -c <short value> to solve
+    #, whereas bytes should detect by program (255/242/143) or raise by simply use -c <short value> to solve
     arg_parser.add_argument('-c', '--cut', type=int, default=-1, help='Specify maximum length of "_TITLE_DESCRIPTION_DATE"(exclude ...) in filename.')
     arg_parser.add_argument('-bt', '--board-timestamp', dest='board_timestamp', action='store_true', help='Suffix board directory name with unique timestamp')
     arg_parser.add_argument('-lt', '--log-timestamp', dest='log_timestamp', action='store_true', help='Suffix log-pinterest-downloader.log filename with unique timestamp. Default filename is log-pinterest-downloader.log.\n\
@@ -933,10 +933,10 @@ def main():
         return quit('[!] Something wrong with Pinterest URL. Please report this issue at https://github.com/limkokhole/pinterest-downloader/issues , thanks.') 
 
     fs_f_max = None
-    #  255 bytes is normaly fs max, 143 bytes is eCryptfs max
-    # https://unix.stackexchange.com/questions/32795/
+    #  255 bytes is normaly fs max, 242 is docker max, 143 bytes is eCryptfs max
+    # https://github.com/moby/moby/issues/1413 , https://unix.stackexchange.com/questions/32795/
     # To test eCryptfs: https://unix.stackexchange.com/questions/426950/
-    for fs_f_max_i in (255, 143):
+    for fs_f_max_i in (255, 242, 143):
         try:
             with open('A'*fs_f_max_i, 'r') as f:
                 fs_f_max = fs_f_max_i # if got really this long A exists will come here
