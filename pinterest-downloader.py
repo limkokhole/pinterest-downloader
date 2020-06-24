@@ -100,7 +100,7 @@ def quit(msgs, exit=True):
         if msg == '\n':
             print('\n')
         else:
-            cprint(''.join([ HIGHER_RED, '%s' % (msg) ]), end='\n' )
+            cprint(''.join([ HIGHER_RED, '%s' % (msg) ]), attrs=BOLD_ONLY, end='\n' )
 
 
 # https://stackoverflow.com/a/34325723/1074998
@@ -337,7 +337,7 @@ def fetch_boards(uname):
             boards.extend(data['resource_response']['data'])
             bookmark = data['resource']['options']['bookmarks'][0]
         except TypeError: # Normal if invalid username
-            cprint(''.join([ HIGHER_RED, '%s' % ('\n[' + x_tag + '] Possible invalid username.\n\n') ]), end='' ) 
+            cprint(''.join([ HIGHER_RED, '%s' % ('\n[' + x_tag + '] Possible invalid username.\n\n') ]), attrs=BOLD_ONLY, end='' ) 
             break
     b_len = len(boards)
     print('[' + plus_tag + '] Found {} Board{}.'.format(b_len, 's' if b_len > 1 else ''))
@@ -454,8 +454,8 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_
                 pass
             except OSError: # e.g. File name too long
                 cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this image at'
-                    , file_path, 'failed :', url, '\n') ]), end='' )
-                cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), end='' )  
+                    , file_path, 'failed :', url, '\n') ]), attrs=BOLD_ONLY, end='' )
+                cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), attrs=BOLD_ONLY, end='' )  
                 return quit(traceback.format_exc())
 
             if not os.path.exists(file_path) or arg_force_update:
@@ -475,13 +475,13 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_
 
                     except OSError: # e.g. File name too long
                         cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this image at'
-                            , file_path, 'failed :', url, '\n') ]), end='' )
-                        cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), end='' )  
+                            , file_path, 'failed :', url, '\n') ]), attrs=BOLD_ONLY, end='' )
+                        cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), attrs=BOLD_ONLY, end='' )  
                         return quit(traceback.format_exc())
 
                 else:
                     #cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this image at'
-                    #, file_path, 'failed :', url, '\n') ]), end='' )
+                    #, file_path, 'failed :', url, '\n') ]), attrs=BOLD_ONLY, end='' )
                     imgDimens = []
                     imgDimensD = {}
                     for ik, iv in image['images'].items():
@@ -506,8 +506,8 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_
                                             f.write(chunk)
                                 except OSError: # e.g. File name too long
                                     cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Retried this image at'
-                                        , file_path, 'failed :', url, '\n') ]), end='' )
-                                    cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), end='' )  
+                                        , file_path, 'failed :', url, '\n') ]), attrs=BOLD_ONLY, end='' )
+                                    cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), attrs=BOLD_ONLY, end='' )  
                                     return quit(traceback.format_exc())
 
                                 #print('\n\n[' + plus_tag + '] ', end='') # konsole has issue if BOLD_ONLY with cprint with plus_tag
@@ -516,7 +516,7 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_
                                 #cprint('\nRetried with second best quality url success :D {} saved to {}\n'.format(url, file_path), attrs=BOLD_ONLY)
                             else:
                                 cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Retried this image at'
-                                , file_path, 'failed :', url, '\n') ]), end='' )
+                                , file_path, 'failed :', url, '\n') ]), attrs=BOLD_ONLY, end='' )
                         else:
                             pass #cprint('\nFile at {} already exist.\n'.format(file_path), attrs=BOLD_ONLY)
 
@@ -556,13 +556,13 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_
                                     f.write(chunk)
                         except OSError: # e.g. File name still too long
                             cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this video at'
-                                , save_dir, 'failed :', vurl, '\n') ]), end='' )
-                            cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), end='' )  
+                                , save_dir, 'failed :', vurl, '\n') ]), attrs=BOLD_ONLY, end='' )
+                            cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), attrs=BOLD_ONLY, end='' )  
                             return quit(traceback.format_exc()) 
 
                     else:
                         cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this video at'
-                            , save_dir, 'failed :', vurl, '\n') ]), end='' )
+                            , save_dir, 'failed :', vurl, '\n') ]), attrs=BOLD_ONLY, end='' )
 
     except: # Need catch inside job, or else it doesn't throws
         print()
@@ -588,7 +588,7 @@ def create_dir(save_dir):
         # So you direct throws OSError enough to remind that user don't make insane fs hier
 
         cprint(''.join([ HIGHER_RED, '%s' % ('\nIt might causes by too long(2045 bytes) in full path.\
-        You may want to to use -d <other path> OR -c <Maximum length of filename>.\n\n') ]), end='' )  
+        You may want to to use -d <other path> OR -c <Maximum length of filename>.\n\n') ]), attrs=BOLD_ONLY, end='' )  
         raise
 
 def write_log(arg_timestamp_log, save_dir, images, pin):
@@ -642,7 +642,7 @@ def write_log(arg_timestamp_log, save_dir, images, pin):
                         f.write('[ ' + str(log_i + 1 - skipped_total) + ' ] Pin Id: ' + str(image_id) + '\n')
                         f.write(story + '\n\n')
                 except OSError: # e.g. File name too long
-                    cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), end='' )  
+                    cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), attrs=BOLD_ONLY, end='' )  
                     return quit(traceback.format_exc())
             else:
                 skipped_total+=1
@@ -691,7 +691,7 @@ def fetch_imgs(board, uname, board_name, section, arg_timestamp, arg_timestamp_l
 Please ensure your username/boardname or link has media item.\n') )
     except (KeyError, TypeError):
         url = '/'.join((uname, board_name))
-        cprint(''.join([ HIGHER_RED, '%s %s %s' % ('\n[' + x_tag + '] Failed. URL:', url, '\n\n') ]), end='' )
+        cprint(''.join([ HIGHER_RED, '%s %s %s' % ('\n[' + x_tag + '] Failed. URL:', url, '\n\n') ]), attrs=BOLD_ONLY, end='' )
         return quit(traceback.format_exc() + '\n[!] Something wrong with Pinterest URL. Please report this issue at https://github.com/limkokhole/pinterest-downloader/issues , thanks.') 
 
     if section:
@@ -1007,10 +1007,10 @@ if __name__ == '__main__':
     try:
         main()
     except requests.exceptions.ReadTimeout:
-        cprint(''.join([ HIGHER_RED, '{}'.format('\n[' + x_tag + '] Suddenly not able to connect. Please check your network.\n') ]), end='' )
+        cprint(''.join([ HIGHER_RED, '{}'.format('\n[' + x_tag + '] Suddenly not able to connect. Please check your network.\n') ]), attrs=BOLD_ONLY, end='' )
         quit('')
     except requests.exceptions.ConnectionError:
-        cprint(''.join([ HIGHER_RED, '{}'.format('\n[' + x_tag + '] Not able to connect. Please check your network.\n') ]), end='' )
+        cprint(''.join([ HIGHER_RED, '{}'.format('\n[' + x_tag + '] Not able to connect. Please check your network.\n') ]), attrs=BOLD_ONLY, end='' )
         quit('')
     except:
         quit(traceback.format_exc())
