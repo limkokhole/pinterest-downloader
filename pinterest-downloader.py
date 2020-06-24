@@ -361,7 +361,8 @@ def get_max_path(arg_cut, fs_f_max, fpart_excluded_immutable, immutable):
     if arg_cut >= 0:
         fpart_excluded_immutable = fpart_excluded_immutable[:arg_cut]
     if immutable:
-        immutable_len = len(immutable.encode('utf-8')) # just in case
+        # immutable shouldn't limit to 1 byte(may be change next time or next project), so need encode also
+        immutable_len = len(immutable.encode('utf-8'))
     else:
         immutable_len = 0
     space_remains = fs_f_max - immutable_len
