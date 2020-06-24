@@ -445,6 +445,8 @@ def get_output_file_path(url, arg_cut, fs_f_max, image_id, human_fname, save_dir
     
     file_path = os.path.join(save_dir, '{}'.format( pin_id_str + fpart_excluded_ext + '.' +  ext))
     try:
+        # Note this is possible here if only . while the rest is empty, e.g. './.'
+        # But better throws and inform me if that abnormal case.
         if PurePath(os.path.abspath(save_dir)).parts[:] != PurePath(os.path.abspath(file_path)).parts[:-1]:
             cprint(''.join([ HIGHER_RED, '\n[! B] Please report to me which Link/scenario it print this log.\
                 Thanks: {} # {} # {} # {} # {} \n\n'
@@ -490,7 +492,7 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_
             human_fname = '_'.join([human_fname, img_created_at])
         # Avoid DD/MM/YYYY truncated when do basename
         # But inside get_output_file_path got sanitize also
-        human_fname = human_fname.replace('/', '|').replace(':', '..') 
+        human_fname = human_fname.replace('/', '|').replace(':', '_') 
 
         #print(human_fname)
 
