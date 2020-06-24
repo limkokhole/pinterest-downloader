@@ -375,7 +375,12 @@ def get_max_path(arg_cut, fs_f_max, fpart_excluded_immutable, immutable):
         except UnicodeDecodeError:
             pass #print('Calm down, this is normal: ' + str(gostan) + ' f: ' + fpart_excluded_immutable)
     #print('after f: ' + fpart_excluded_immutable)
-    return fpart_excluded_immutable
+    # Last safety resort, in case any bug:
+    fpart_excluded_immutable_base = os.path.basename( fpart_excluded_immutable )
+    if fpart_excluded_immutable_base != fpart_excluded_immutable:
+        cprint('\nPlease report to me which Link/scenario it print this log. Thanks: {} # {} # {} # {}\n'
+            .format(arg_cut, fs_f_max, fpart_excluded_immutable, immutable), attrs=BOLD_ONLY)
+    return fpart_excluded_immutable_base
 
 
 def get_output_file_path(url, arg_cut, fs_f_max, image_id, human_fname, save_dir):
@@ -655,9 +660,9 @@ def write_log(arg_timestamp_log, save_dir, images, pin):
 def sanitize(path):
     # trim multiple whitespaces
     if IS_WIN:
-        return os.path.basename( path.replace('  ', ' ').replace('/', '_').replace('\\', '_').replace('|', '_').replace(':', '..').strip() )
+        return os.path.basename( path.replace('  ', ' ').replace('/', '_').replace('\\', '_').replace('|', '_').replace(':', '_').strip() )
     else:
-        return os.path.basename( path.replace('  ', ' ').replace('/', '|').replace(':', '..').strip() )
+        return os.path.basename( path.replace('  ', ' ').replace('/', '|').replace(':', '_').strip() )
 
 def fetch_imgs(board, uname, board_name, section, arg_timestamp, arg_timestamp_log, arg_force_update
     , arg_dir, arg_thread_max, IMGS_SESSION, IMG_SESSION, V_SESSION, arg_cut, fs_f_max):
