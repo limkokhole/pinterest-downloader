@@ -370,6 +370,7 @@ def get_max_path(arg_cut, fs_f_max, fpart_excluded_immutable, immutable):
     for gostan in range(space_remains, space_remains - 4, -1):
         try:
             fpart_excluded_immutable = fpart_excluded_immutable.encode('utf-8')[: gostan ].decode('utf-8')
+            break # No break still same result, but waste
         except UnicodeDecodeError:
             pass #print('Calm down, this is normal: ' + str(gostan) + ' f: ' + fpart_excluded_immutable)
     #print('after f: ' + fpart_excluded_immutable)
