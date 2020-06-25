@@ -54,6 +54,7 @@ Download all images/videos from Pinterest user/board/section.
 
 ### Example Usage:
     $ python3 pinterest-downloader.py # Prompt for insert path
+    $ export PYTHONIOENCODING=utf8; python3 pinterest-downloader.py # If you get "'gbk' codec can't encode character" error
     $ python3 pinterest-downloader.py https://www.pinterest.com/antonellomiglio/computer/ 
     $ python3 pinterest-downloader.py https://www.pinterest.com/antonellomiglio/computer/ -d comp
     $ python3 pinterest-downloader.py -d comp https://www.pinterest.com/antonellomiglio/computer/ # or path in last

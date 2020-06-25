@@ -26,7 +26,7 @@ __credits__ = ['Inspired by https://github.com/SevenLines/pinterest-board-downlo
 __license__ = 'MIT'
 # Version increase if the output file/dir naming incompatible with existing
 #, which might re-download for some files of previous version because of dir/filename not match
-__version__ = 1.5
+__version__ = 1.6
 __maintainer__ = 'Lim Kok Hole'
 __email__ = 'limkokhole@gmail.com'
 __status__ = 'Production'
@@ -54,43 +54,17 @@ except ModuleNotFoundError:
         print('Please install readline module.')
         raise
 
-try:
-    x_tag = '✖'
-    done_tag = '✔'
-    plus_tag = '➕'
-    pinterest_logo = '🅿️'
-    # Test Windows unicode capability by printing logo, throws if not:
-    print(pinterest_logo, end=ANSI_CLEAR, flush=True)
-except UnicodeEncodeError:
-    x_tag = 'x'
-    done_tag = 'DONE'
-    plus_tag = '+'
-    pinterest_logo = 'P'
-    
-import argparse
-import time
-from datetime import datetime, timedelta
-
-import json
-import lxml.html as html
-
-import urllib
-import requests
+#IS_WIN = True # TESTING PURPOSE
 
 from termcolor import cprint
 import colorama
 from colorama import Fore
 colorama.init() # Windows need this
 
-#ANSI_CLEAR = '\x1b[0m\x1b[K'
 HIGHER_GREEN = Fore.LIGHTGREEN_EX
 HIGHER_RED = Fore.LIGHTRED_EX
 BOLD_ONLY = ['bold']
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
-# RIP UA, https://groups.google.com/a/chromium.org/forum/m/#!msg/blink-dev/-2JIRNMWJ7s/yHe4tQNLCgAJ
-UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.0.0 Safari/537.36'
 
 def quit(msgs, exit=True):
     if not isinstance(msgs, list):
@@ -102,6 +76,39 @@ def quit(msgs, exit=True):
             print('\n')
         else:
             cprint(''.join([ HIGHER_RED, '%s' % (msg) ]), attrs=BOLD_ONLY, end='\n' )
+
+
+try:
+    x_tag = '✖'
+    done_tag = '✔'
+    plus_tag = '➕'
+    pinterest_logo = '🅿️'
+    # Test Windows unicode capability by printing logo, throws if not:
+    print(pinterest_logo, end=ANSI_CLEAR, flush=True)
+except Exception: #UnicodeEncodeError: # Will error later if not do this, so better quit() early
+    cprint(''.join([ HIGHER_RED, '%s' % ('Please run `export PYTHONIOENCODING=utf-8;` to support Unicode.') ]), attrs=BOLD_ONLY, end='\n' )
+    quit('')
+    sys.exit(1)
+     
+import argparse
+import time
+from datetime import datetime, timedelta
+
+import json
+import lxml.html as html
+
+import urllib
+import requests
+
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# RIP UA, https://groups.google.com/a/chromium.org/forum/m/#!msg/blink-dev/-2JIRNMWJ7s/yHe4tQNLCgAJ
+UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.0.0 Safari/537.36'
+
+# MAX_PATH 260 need exclude 1 terminating null character <NUL>
+# if prefix \\?\ + abspath to use Windows extented-length(i.e. in my case, individual filename/dir can use full 259, no more 259 is fit full path), then the MAX_PATH is 259 - 4 = 255
+#[DEPRECATED] since always -el now AND Windows 259 - \\?\ = 255 normal Linux
+#WIN_MAX_PATH = 259 # MAX_PATH 260 need exclude 1 terminating null character <NUL>
 
 
 # https://stackoverflow.com/a/34325723/1074998
@@ -199,7 +206,7 @@ def get_session(ver_i):
 '''
 def get_user_boards(username):
     s = get_session(0)
-    r = s.get('https://www.pinterest.com/{}/'.format(username), timeout=30)
+    r = s.get('https://www.pinterest.com/{}/'.format(username), timeout=15)
     root = html.fromstring(r.content)
     tag = root.xpath("//script[@id='initial-state']")[0]
     initial_data = json.loads(tag.text)
@@ -213,10 +220,10 @@ def get_user_boards(username):
 '''
 
 
-def get_pin_info(pin_id, arg_timestamp_log, arg_force_update, arg_dir, arg_cut, fs_f_max):
+def get_pin_info(pin_id, arg_timestamp_log, arg_force_update, arg_dir, arg_cut, arg_el, fs_f_max):
     s = get_session(0)
 
-    r = s.get('https://www.pinterest.com/pin/{}/'.format(pin_id), timeout=30)
+    r = s.get('https://www.pinterest.com/pin/{}/'.format(pin_id), timeout=15)
     root = html.fromstring(r.content)
     #print(root)
     tag = root.xpath("//script[@id='initial-state']")[0]
@@ -234,7 +241,7 @@ def get_pin_info(pin_id, arg_timestamp_log, arg_force_update, arg_dir, arg_cut, 
         V_SESSION = get_session(4)
         print('[i] Download Pin id: ' + str(images['id']) + ' in directory: ' + arg_dir)
         printProgressBar(0, 1, prefix='[...] Downloading:', suffix='Complete', length=50)
-        download_img(images, arg_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_cut,  fs_f_max)
+        download_img(images, arg_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_cut, arg_el, fs_f_max)
         printProgressBar(1, 1, prefix='[' + done_tag + '] Downloaded:', suffix='Complete   ', length=50)
     except KeyError:
         return quit(traceback.format_exc())
@@ -244,7 +251,7 @@ def get_pin_info(pin_id, arg_timestamp_log, arg_force_update, arg_dir, arg_cut, 
 def get_board_info(board_name, exclude_section, section):
     s = get_session(0)
 
-    r = s.get('https://www.pinterest.com/{}/'.format(board_name), timeout=30)
+    r = s.get('https://www.pinterest.com/{}/'.format(board_name), timeout=15)
     root = html.fromstring(r.content)
     tag = root.xpath("//script[@id='initial-state']")[0]
     initial_data = json.loads(tag.text)
@@ -329,7 +336,7 @@ def fetch_boards(uname):
 
         #print('[boards] called headers: ' + repr(s.headers))
 
-        r = s.get('https://www.pinterest.com/resource/BoardsResource/get/', params=post_d, timeout=30)
+        r = s.get('https://www.pinterest.com/resource/BoardsResource/get/', params=post_d, timeout=15)
 
         #print('[Boards url]: ' + r.url)
         data = r.json()
@@ -357,13 +364,14 @@ def sanitize(path):
         #>>> PurePath( '/home/iced/..'.replace('..', '') ).parts[-1] # get 'iced'
         #>>> os.path.basename('/home/iced/..'.replace('..', '')) # get empty ''
         # Ensure .replace('..', '') is last replacement before .strip() AND not replace back to dot '.'
-        p = PurePath( path.replace('/', '_').replace('\\', '_').replace('|', '_').replace(':', '_').replace('..', '_').strip() )
+        # https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
+        p = PurePath( path.replace('<', '').replace('>', '').replace('"', '\'').replace('?', '').replace('*', '').replace('/', '_').replace('\\', '_').replace('|', '_').replace(':', '_').replace('.', '_').strip() )
         if p.parts:
             return p.parts[-1]
         else:
             return ''
     else:
-        p = PurePath( path.replace('/', '|').replace(':', '_').replace('..', '_').strip() )
+        p = PurePath( path.replace('/', '|').replace(':', '_').replace('.', '_').strip() )
         if p.parts:
             return p.parts[-1]
         else:
@@ -391,7 +399,11 @@ def get_max_path(arg_cut, fs_f_max, fpart_excluded_immutable, immutable):
         immutable_len = len(immutable.encode('utf-8'))
     else:
         immutable_len = 0
+
     space_remains = fs_f_max - immutable_len
+    if space_remains < 1:
+        return '' # No more spaces to trim(bcoz directories name too long), so only shows PinID.jpg
+
     # range([start], stop[, step])
     # -1 step * 4 loop = -4, means looping 4 bytes(UTF-8 max) from right to left
     for gostan in range(space_remains, space_remains - 4, -1):
@@ -403,10 +415,10 @@ def get_max_path(arg_cut, fs_f_max, fpart_excluded_immutable, immutable):
     #print('after f: ' + fpart_excluded_immutable)
     # Last safety resort, in case any bug:
     fpart_excluded_immutable_base = sanitize ( fpart_excluded_immutable )
-    if fpart_excluded_immutable_base != fpart_excluded_immutable:
+    if fpart_excluded_immutable_base != fpart_excluded_immutable.strip(): # Original need strip bcoz it might cut in space
         cprint(''.join([ HIGHER_RED, '\n[! A] Please report to me which Link/scenario it print this log.\
-            Thanks: {} # {} # {} # {}\n\n'
-            .format(arg_cut, fs_f_max, fpart_excluded_immutable, immutable) ]), attrs=BOLD_ONLY, end='' )  
+            Thanks:\n{} # {} # {} # {} # {}\n\n'
+            .format(arg_cut, fs_f_max, repr(fpart_excluded_immutable), repr(fpart_excluded_immutable_base), immutable) ]), attrs=BOLD_ONLY, end='' )  
     return fpart_excluded_immutable_base
 
 
@@ -417,16 +429,23 @@ def get_output_file_path(url, arg_cut, fs_f_max, image_id, human_fname, save_dir
     # throws ValueError is fine bcoz it's not normal 
     _, ext = basename.split('.')
     ext = sanitize(ext)
+    if not ext.strip(): # Ensure add hard-coded extension to avoid empty id and leave single dot in next step
+        ext = 'unknown'
     # Currently not possible ..jpg here bcoz above must single '.' do not throws
     # , even replace ..jpg to _.jpg is fine, just can't preview in explorer only 
     immutable = sanitize( pin_id_str + '.' +  ext )
 
     fpart_excluded_ext_before  = sanitize( human_fname )
-    #print( 'get output f:' + fpart_excluded_ext_before )
+    #print( 'get output f:' + repr(fpart_excluded_ext_before) )
 
+    # [DEPRECATED, now always use extended length which apply to single component instead of full path]
+    #if IS_WIN: # Windows MAX_PATH 260 is full path not single component (https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file , https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file#maximum-path-length-limitation) 
+    #    immutable_file_path = os.path.abspath( os.path.join(save_dir, '{}'.format( immutable)) )
+    #    fpart_excluded_ext = get_max_path(arg_cut, fs_f_max, fpart_excluded_ext_before
+    #        , immutable_file_path)
+    #else:    
     fpart_excluded_ext = get_max_path(arg_cut, fs_f_max, fpart_excluded_ext_before
-        , immutable)
-        
+            , immutable)
     if fpart_excluded_ext:
         if fpart_excluded_ext_before == fpart_excluded_ext: # means not truncat
             # Prevent confuse when trailing period become '..'ext and looks like '...'
@@ -437,22 +456,33 @@ def get_output_file_path(url, arg_cut, fs_f_max, image_id, human_fname, save_dir
             if fpart_excluded_ext[-1] == '.':
                 fpart_excluded_ext = fpart_excluded_ext[:-1]
 
+            #if IS_WIN: # [DEPRECATED] Now always use -el
+            #    # Need set ... here, not abspath below which trimmed ... if ... at the end.
+            #    # Also ensures sanitize replace single '.', not '..' which causes number not equal after added ... later
+            #    immutable = sanitize( pin_id_str + '....' +  ext )
+            #    immutable_file_path = os.path.abspath( os.path.join(save_dir, '{}'.format( immutable)) )
+            #    fpart_excluded_ext = get_max_path(arg_cut, fs_f_max, fpart_excluded_ext_before
+            #            , immutable_file_path)
+            #else:
             fpart_excluded_ext = get_max_path(arg_cut, fs_f_max, fpart_excluded_ext
                 , '...' + immutable)
 
             fpart_excluded_ext = fpart_excluded_ext + '...'
 
-    
-    file_path = os.path.join(save_dir, '{}'.format( pin_id_str + fpart_excluded_ext + '.' +  ext))
+    # To make final output path consistent with IS_WIN's abspath above, so also do abspath here:
+    # (Please ensure below PurePath's file_path checking is using abspath if remove abspath here in future)
+    file_path = os.path.abspath( os.path.join(save_dir, '{}'.format( pin_id_str + fpart_excluded_ext + '.' +  ext)) )
+    #if '111' in file_path:
+    #    print('last fp: ' + file_path + ' len: ' + str(len(file_path.encode('utf-8'))))
     try:
         # Note this is possible here if only . while the rest is empty, e.g. './.'
         # But better throws and inform me if that abnormal case.
-        if PurePath(os.path.abspath(save_dir)).parts[:] != PurePath(os.path.abspath(file_path)).parts[:-1]:
+        if PurePath(os.path.abspath(save_dir)).parts[:] != PurePath(file_path).parts[:-1]:
             cprint(''.join([ HIGHER_RED, '\n[! B] Please report to me which Link/scenario it print this log.\
                 Thanks: {} # {} # {} # {} # {} \n\n'
                 .format(arg_cut, fs_f_max, pin_id_str + fpart_excluded_ext + '.' +  ext, save_dir, file_path) ]), attrs=BOLD_ONLY, end='' )  
             file_path = os.path.join(save_dir, '{}'.format( sanitize(pin_id_str + fpart_excluded_ext + '.' +  ext)))
-            if PurePath(os.path.abspath(save_dir)).parts[:] != PurePath(os.path.abspath(file_path)).parts[:-1]:
+            if PurePath(os.path.abspath(save_dir)).parts[:] != PurePath(file_path).parts[:-1]:
                 cprint(''.join([ HIGHER_RED, '\n[! C] Please report to me which Link/scenario it print this log.\
                     Thanks: {} # {} # {} # {} # {} \n\n'
                     .format(arg_cut, fs_f_max, pin_id_str + fpart_excluded_ext + '.' +  ext, save_dir, file_path) ]), attrs=BOLD_ONLY, end='' )  
@@ -466,7 +496,7 @@ def get_output_file_path(url, arg_cut, fs_f_max, image_id, human_fname, save_dir
     return file_path
 
 
-def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_cut, fs_f_max):
+def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_cut, arg_el, fs_f_max):
 
     try:
         # Using threading.Lock() if necessary
@@ -491,35 +521,26 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_
                 img_created_at = ''.join(img_created_at_l[1:4])
             human_fname = '_'.join([human_fname, img_created_at])
         # Avoid DD/MM/YYYY truncated when do basename
-        # But inside get_output_file_path got sanitize also
-        human_fname = human_fname.replace('/', '|').replace(':', '_') 
+        # But inside get_output_file_path got sanitize also # So no need do here
+        # human_fname = human_fname.replace('/', '|').replace(':', '_') 
 
         #print(human_fname)
 
         if 'images' in image:
             url = image['images']['orig']['url']
 
+            #hn_bk = human_fname # TESTING -el
+            #human_fname = human_fname + 'A'*500 # TESTING -el
             file_path = get_output_file_path(url, arg_cut, fs_f_max, image_id, human_fname, save_dir)
-
-            try:
-                with open(file_path, 'r') as f:
-                    pass
-            except FileNotFoundError:
-                # Will throws OSError first if both FileNotFoundError and OSError met
-                # , BUT if folder not exist then will throws FileNotFoundError first
-                # But for my code assume folder already there, so can use this trick
-                pass
-            except OSError: # e.g. File name too long
-                cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this image at'
-                    , file_path, 'failed :', url, '\n') ]), attrs=BOLD_ONLY, end='' )
-                cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), attrs=BOLD_ONLY, end='' )  
-                return quit(traceback.format_exc())
-
+            #human_fname = hn_bk # TESTING -el
+            if arg_el:
+                file_path = '\\\\?\\' + os.path.abspath(file_path)
+            
             if not os.path.exists(file_path) or arg_force_update:
                 #print(IMG_SESSION.headers)
                 
                 #url = 'https://httpbin.org/get'
-                r = IMG_SESSION.get(url, stream=True, timeout=30)
+                r = IMG_SESSION.get(url, stream=True, timeout=15)
                 
                 #print(url + ' ok? '  + str(r.ok))
 
@@ -552,9 +573,11 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_
                         #cprint('\n\n[...] Retry with second best quality url: {}'.format(url), attrs=BOLD_ONLY)
 
                         file_path = get_output_file_path(url, arg_cut, fs_f_max, image_id, human_fname, save_dir)
+                        if arg_el:
+                            file_path = '\\\\?\\' + os.path.abspath(file_path)
                         
                         if not os.path.exists(file_path) or arg_force_update:
-                            r = IMG_SESSION.get(url, stream=True, timeout=30)
+                            r = IMG_SESSION.get(url, stream=True, timeout=15)
                             if r.ok:
 
                                 try:
@@ -598,10 +621,12 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_
 
                 # We MUST get correct file_path first to avoid final filename != trimmed filename
                 # ... which causes `not os.path.exists(file_path)` failed and re-download
+                if arg_el:
+                    file_path = '\\\\?\\' + os.path.abspath(file_path)
 
                 if not os.path.exists(file_path) or arg_force_update:
                     
-                    r = V_SESSION.get(vurl, stream=True, timeout=30)
+                    r = V_SESSION.get(vurl, stream=True, timeout=15)
                     
                     #print(vurl + ' ok? '  + str(r.ok))
 
@@ -645,7 +670,7 @@ def create_dir(save_dir):
         # So you direct throws OSError enough to remind that user don't make insane fs hier
 
         cprint(''.join([ HIGHER_RED, '%s' % ('\nIt might causes by too long(2045 bytes) in full path.\
-        You may want to to use -d <other path> OR -c <Maximum length of filename>.\n\n') ]), attrs=BOLD_ONLY, end='' )  
+        You may want to to use -d <other path> OR -c <Maximum length of folder & filename>.\n\n') ]), attrs=BOLD_ONLY, end='' )  
         raise
 
 def write_log(arg_timestamp_log, save_dir, images, pin, arg_cut):
@@ -711,7 +736,7 @@ def write_log(arg_timestamp_log, save_dir, images, pin, arg_cut):
 
 
 def fetch_imgs(board, uname, board_name, section, arg_timestamp, arg_timestamp_log, arg_force_update
-    , arg_dir, arg_thread_max, IMGS_SESSION, IMG_SESSION, V_SESSION, arg_cut, fs_f_max):
+    , arg_dir, arg_thread_max, IMGS_SESSION, IMG_SESSION, V_SESSION, arg_cut, arg_el, fs_f_max):
     
     bookmark = None
     images = []
@@ -747,18 +772,23 @@ Please ensure your username/boardname or link has media item.\n') )
         cprint(''.join([ HIGHER_RED, '%s %s %s' % ('\n[' + x_tag + '] Failed. URL:', url, '\n\n') ]), attrs=BOLD_ONLY, end='' )
         return quit(traceback.format_exc() + '\n[!] Something wrong with Pinterest URL. Please report this issue at https://github.com/limkokhole/pinterest-downloader/issues , thanks.') 
 
+    fs_d_max = fs_f_max
+    #if IS_WIN: # [DEPRECATED] since always -el now AND Windows 259 - \\?\ = 255 normal Linux
+    #    if arg_el: # Directory cannot use -el
+    #        fs_d_max = WIN_MAX_PATH
+
     if section:
         # Put -1 fot arg_cut arg bcoz don't want cut on directory
         # to avoid cut become empty (or provide new arg -c-cut-directory
         # , but overcomplicated and in reality who want to cut dir?
         # ... Normally only want cut filename bcoz of included title/description )
-        save_dir = os.path.join( arg_dir,  get_max_path(-1, fs_f_max, sanitize(uname), None)
-            , get_max_path(-1, fs_f_max, sanitize(board_name_folder + timestamp_d), None)
-            , get_max_path(-1, fs_f_max, sanitize(section_folder), None) )
+        save_dir = os.path.join( arg_dir,  get_max_path(-1, fs_d_max, sanitize(uname), None)
+            , get_max_path(-1, fs_d_max, sanitize(board_name_folder + timestamp_d), None)
+            , get_max_path(-1, fs_d_max, sanitize(section_folder), None) )
         url = '/' + '/'.join((uname, board_name, section)) + '/'
     else:
-        save_dir = os.path.join( arg_dir,  get_max_path(-1, fs_f_max, sanitize(uname), None)
-            , get_max_path(-1, fs_f_max, sanitize(board_name_folder + timestamp_d), None))
+        save_dir = os.path.join( arg_dir,  get_max_path(-1, fs_d_max, sanitize(uname), None)
+            , get_max_path(-1, fs_d_max, sanitize(board_name_folder + timestamp_d), None))
         # If boardname in url is lowercase but title startswith ' which quotes to %22 and cause err
         #... So don't use board_name_folder as board_name in url below to call API
         url = '/'.join((uname, board_name))
@@ -824,10 +854,10 @@ Please ensure your username/boardname or link has media item.\n') )
 
         if section:
             r = IMGS_SESSION.get('https://www.pinterest.com/resource/BoardSectionPinsResource/get/'
-                , params=post_d, timeout=30)
+                , params=post_d, timeout=15)
         else:
             r = IMGS_SESSION.get('https://www.pinterest.com/resource/BoardFeedResource/get/'
-                , params=post_d, timeout=30)
+                , params=post_d, timeout=15)
 
         #print('Imgs url ok: ' + str(r.ok))
         #print('Imgs url: ' + r.url)
@@ -856,7 +886,7 @@ Please ensure your username/boardname or link has media item.\n') )
 
         # Create threads
         futures = {executor.submit(download_img, image, save_dir, arg_force_update
-                , IMG_SESSION, V_SESSION, arg_cut, fs_f_max) for image in images}
+                , IMG_SESSION, V_SESSION, arg_cut, arg_el, fs_f_max) for image in images}
 
         # as_completed() gives you the threads once finished
         for index, f in enumerate(as_completed(futures)):
@@ -893,6 +923,8 @@ def main():
     # [UPDATE] now --cut is per glyph, not byte, which is most users expected
     #, whereas bytes should detect by program (255/242/143) or raise by simply use -c <short value> to solve
     arg_parser.add_argument('-c', '--cut', type=int, default=-1, help='Specify maximum length of "_TITLE_DESCRIPTION_DATE"(exclude ...) in filename.')
+    # Disable since better become default (so no more calc full path for 259(-el is exclude \\?\ = 255), instead only single path 259):
+    #arg_parser.add_argument('-el', '--extended-length', dest='extended_len', type=int, default=-1, help='Specify Windows extended-length by prefix \\\\?\\ in output path. E.g. 339 work in my system.')
     arg_parser.add_argument('-bt', '--board-timestamp', dest='board_timestamp', action='store_true', help='Suffix board directory name with unique timestamp')
     arg_parser.add_argument('-lt', '--log-timestamp', dest='log_timestamp', action='store_true', help='Suffix log-pinterest-downloader.log filename with unique timestamp. Default filename is log-pinterest-downloader.log.\n\
         Note: Pin id without Title/Description/Link/Metadata/Created_at will not write to log.')
@@ -956,6 +988,13 @@ def main():
     if fs_f_max is None: # os.statvfs ,ay not avaiable in Windows, so lower priority
         #os.statvfs('.').f_frsize - 1 = 4095 # full path max bytes
         fs_f_max = os.statvfs('.').f_namemax
+    arg_el = False
+    if IS_WIN:
+        #if args.extended_len >= 0:
+        #    fs_f_max = args.extended_len
+        arg_el = True
+        #else: [DEPRECATED] since always -el now AND Windows 259 - \\?\ = 255 normal Linux
+        #    fs_f_max = WIN_MAX_PATH
 
     if len(slash_path) == 2:
         # may copy USERNAME/boards/ links
@@ -965,7 +1004,7 @@ def main():
             print('[i] Job is download video/image of single pin page.')
             pin_id = slash_path[-1] #bk first before reset 
             slash_path = [] # reset for later in case exception
-            get_pin_info(pin_id.strip(), args.log_timestamp, args.force, args.dir, args.cut, fs_f_max)
+            get_pin_info(pin_id.strip(), args.log_timestamp, args.force, args.dir, args.cut, arg_el, fs_f_max)
 
     if len(slash_path) == 3:
         u_url = '/'.join(slash_path)
@@ -980,7 +1019,7 @@ def main():
             V_SESSION = get_session(4)
             fetch_imgs( board, slash_path[-3], slash_path[-2], slash_path[-1], args.board_timestamp
                 , args.log_timestamp, args.force, args.dir, args.thread_max
-                , IMGS_SESSION, IMG_SESSION, V_SESSION, args.cut, fs_f_max )
+                , IMGS_SESSION, IMG_SESSION, V_SESSION, args.cut, arg_el, fs_f_max )
         except KeyError:
             return quit(traceback.format_exc())
 
@@ -995,7 +1034,7 @@ def main():
             IMG_SESSION = get_session(3)
             V_SESSION = get_session(4)
             fetch_imgs( board, slash_path[-2], slash_path[-1], None, args.board_timestamp, args.log_timestamp, args.force
-            , args.dir, args.thread_max, IMGS_SESSION, IMG_SESSION, V_SESSION, args.cut, fs_f_max )
+            , args.dir, args.thread_max, IMGS_SESSION, IMG_SESSION, V_SESSION, args.cut, arg_el, fs_f_max )
             if sections:
                 sec_c = len(sections)
                 print('[i] Trying to get ' + str(sec_c) + ' section{}'.format('s' if sec_c > 1 else ''))
@@ -1004,7 +1043,7 @@ def main():
                     board = get_board_info(s_url, False, sec['slug']) # False not using bcoz sections not [] already
                     fetch_imgs( board, slash_path[-2], slash_path[-1], sec['slug'], args.board_timestamp
                         , args.log_timestamp, args.force, args.dir, args.thread_max
-                        , IMGS_SESSION, IMG_SESSION, V_SESSION, args.cut, fs_f_max )
+                        , IMGS_SESSION, IMG_SESSION, V_SESSION, args.cut, arg_el, fs_f_max )
 
         except KeyError:
             return quit(traceback.format_exc())
@@ -1029,7 +1068,7 @@ def main():
                 board['owner']['id'] = board['id']
                 fetch_imgs( board, slash_path[-1], board_name, None, args.board_timestamp, args.log_timestamp
                     , args.force, args.dir, args.thread_max, IMGS_SESSION, IMG_SESSION, V_SESSION
-                    , args.cut, fs_f_max )
+                    , args.cut, arg_el, fs_f_max )
                 if (not args.exclude_section) and (board['section_count'] > 0):
                     sec_c = board['section_count']
                     print('[i] Trying to get ' + str(sec_c) + ' section{}'.format('s' if sec_c > 1 else ''))
@@ -1047,7 +1086,7 @@ def main():
                         sec_uname, sec_bname = u_url.split('/')
                         fetch_imgs( board, sec_uname, sec_bname, sec['slug'], args.board_timestamp
                             , args.log_timestamp, args.force, args.dir, args.thread_max
-                            , IMGS_SESSION, IMG_SESSION, V_SESSION, args.cut, fs_f_max )
+                            , IMGS_SESSION, IMG_SESSION, V_SESSION, args.cut, arg_el, fs_f_max )
 
         except KeyError:
             return quit(traceback.format_exc())
