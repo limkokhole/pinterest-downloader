@@ -654,7 +654,10 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_
 def create_dir(save_dir):
 
     try:
-        os.makedirs(save_dir)
+        if IS_WIN:
+            os.makedirs('\\\\?\\' + os.path.abspath(save_dir))
+        else:
+            os.makedirs(save_dir)
     except FileExistsError: # Check this first to avoid OSError cover this
         pass # Normal if re-download
     except OSError: # e.g. File name too long 
