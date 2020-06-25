@@ -107,8 +107,8 @@ UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like 
 
 # MAX_PATH 260 need exclude 1 terminating null character <NUL>
 # if prefix \\?\ + abspath to use Windows extented-length(i.e. in my case, individual filename/dir can use full 259, no more 259 is fit full path), then the MAX_PATH is 259 - 4 = 255
-#[DEPRECATED] since always -el now AND Windows 259 - \\?\ = 255 normal Linux
-#WIN_MAX_PATH = 259 # MAX_PATH 260 need exclude 1 terminating null character <NUL>
+#[DEPRECATED] no more 259 since always -el now AND Windows 259 - \\?\ == 255 normal Linux
+WIN_MAX_PATH = 255 # MAX_PATH 260 need exclude 1 terminating null character <NUL>
 
 
 # https://stackoverflow.com/a/34325723/1074998
@@ -1004,36 +1004,38 @@ def main():
         return quit('[!] Something wrong with Pinterest URL. Please report this issue at https://github.com/limkokhole/pinterest-downloader/issues , thanks.') 
 
     fs_f_max = None
-    #  255 bytes is normaly fs max, 242 is docker max, 143 bytes is eCryptfs max
-    # https://github.com/moby/moby/issues/1413 , https://unix.stackexchange.com/questions/32795/
-    # To test eCryptfs: https://unix.stackexchange.com/questions/426950/
-    for fs_f_max_i in (255, 242, 143):
-        try:
-            with open('A'*fs_f_max_i, 'r') as f:
-                fs_f_max = fs_f_max_i # if got really this long A exists will come here
-                break
-        except FileNotFoundError:
-            # Will throws OSError first if both FileNotFoundError and OSError met
-            # , BUT if folder not exist then will throws FileNotFoundError first
-            # But current directory already there, so can use this trick
-            # In worst case just raise it
-            fs_f_max = fs_f_max_i # Normally came here in first loop
-            break
-        except OSError: # e.g. File name too long
-            pass #print('Try next') # Or here first if eCryptfs
-    #print('fs filename max len is ' + repr(fs_f_max))
-    # https://github.com/ytdl-org/youtube-dl/pull/25475
-    # https://stackoverflow.com/questions/54823541/what-do-f-bsize-and-f-frsize-in-struct-statvfs-stand-for
-    if fs_f_max is None: # os.statvfs ,ay not avaiable in Windows, so lower priority
-        #os.statvfs('.').f_frsize - 1 = 4095 # full path max bytes
-        fs_f_max = os.statvfs('.').f_namemax
-    arg_el = False
     if IS_WIN:
         #if args.extended_len >= 0:
         #    fs_f_max = args.extended_len
         arg_el = True
-        #else: [DEPRECATED] since always -el now AND Windows 259 - \\?\ = 255 normal Linux
-        #    fs_f_max = WIN_MAX_PATH
+        #else: [DEPRECATED] now always -el now AND Windows 259 - \\?\ == 255 normal Linux
+        fs_f_max = WIN_MAX_PATH
+    else:
+        arg_el = False
+        #  255 bytes is normaly fs max, 242 is docker max, 143 bytes is eCryptfs max
+        # https://github.com/moby/moby/issues/1413 , https://unix.stackexchange.com/questions/32795/
+        # To test eCryptfs: https://unix.stackexchange.com/questions/426950/
+        # If IS_WIN check here then need add \\?\\ for WIN-only
+        for fs_f_max_i in (255, 242, 143):
+            try:
+                with open('A'*fs_f_max_i, 'r') as f:
+                    fs_f_max = fs_f_max_i # if got really this long A exists will come here
+                    break
+            except FileNotFoundError:
+                # Will throws OSError first if both FileNotFoundError and OSError met
+                # , BUT if folder not exist then will throws FileNotFoundError first
+                # But current directory already there, so can use this trick
+                # In worst case just raise it
+                fs_f_max = fs_f_max_i # Normally came here in first loop
+                break
+            except OSError: # e.g. File name too long
+                pass #print('Try next') # Or here first if eCryptfs
+        #print('fs filename max len is ' + repr(fs_f_max))
+        # https://github.com/ytdl-org/youtube-dl/pull/25475
+        # https://stackoverflow.com/questions/54823541/what-do-f-bsize-and-f-frsize-in-struct-statvfs-stand-for
+        if fs_f_max is None: # os.statvfs ,ay not avaiable in Windows, so lower priority
+            #os.statvfs('.').f_frsize - 1 = 4095 # full path max bytes
+            fs_f_max = os.statvfs('.').f_namemax
 
     if len(slash_path) == 2:
         # may copy USERNAME/boards/ links
