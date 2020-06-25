@@ -550,7 +550,18 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_
                         with open(file_path, 'wb') as f:
                             for chunk in r:
                                 f.write(chunk)
-
+                                #raise(requests.exceptions.ConnectionError)
+                    except requests.exceptions.ConnectionError:
+                        r = IMG_SESSION.get(url, stream=True, timeout=15)
+                        try:
+                            with open(file_path, 'wb') as f:
+                                for chunk in r:
+                                    f.write(chunk)
+                                    #raise(requests.exceptions.ConnectionError)
+                        except requests.exceptions.ConnectionError:
+                            cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this image at'
+                            , file_path, 'failed :', url, '\n') ]), attrs=BOLD_ONLY, end='' )
+                            cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to delete this image manually and retry later.\n\n') ]), attrs=BOLD_ONLY, end='' )  
                     except OSError: # e.g. File name too long
                         cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this image at'
                             , file_path, 'failed :', url, '\n') ]), attrs=BOLD_ONLY, end='' )
@@ -584,6 +595,19 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_
                                     with open(file_path, 'wb') as f:
                                         for chunk in r:
                                             f.write(chunk)
+                                        #raise(requests.exceptions.ConnectionError)
+                                except requests.exceptions.ConnectionError:
+                                    r = IMG_SESSION.get(url, stream=True, timeout=15)
+                                    try:
+                                        with open(file_path, 'wb') as f:
+                                            for chunk in r:
+                                                f.write(chunk)
+                                            #raise(requests.exceptions.ConnectionError)
+                                    except requests.exceptions.ConnectionError:
+                                        cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this image at'
+                                            , file_path, 'failed :', url, '\n') ]), attrs=BOLD_ONLY, end='' )
+                                        cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to delete this image manually and retry later.\n\n') ]), attrs=BOLD_ONLY, end='' )  
+
                                 except OSError: # e.g. File name too long
                                     cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Retried this image at'
                                         , file_path, 'failed :', url, '\n') ]), attrs=BOLD_ONLY, end='' )
@@ -636,9 +660,21 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_
                             with open(file_path, 'wb') as f:
                                 for chunk in r:
                                     f.write(chunk)
+                                    #raise(requests.exceptions.ConnectionError)
+                        except requests.exceptions.ConnectionError:
+                            r = V_SESSION.get(vurl, stream=True, timeout=15)
+                            try:
+                                with open(file_path, 'wb') as f:
+                                    for chunk in r:
+                                        f.write(chunk)
+                                        #raise(requests.exceptions.ConnectionError)
+                            except requests.exceptions.ConnectionError:
+                                cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this video at'
+                                    , file_path, 'failed :', vurl, '\n') ]), attrs=BOLD_ONLY, end='' )
+                                cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to delete this video manually and retry later.\n\n') ]), attrs=BOLD_ONLY, end='' )  
                         except OSError: # e.g. File name still too long
                             cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this video at'
-                                , save_dir, 'failed :', vurl, '\n') ]), attrs=BOLD_ONLY, end='' )
+                                , file_path, 'failed :', vurl, '\n') ]), attrs=BOLD_ONLY, end='' )
                             cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), attrs=BOLD_ONLY, end='' )  
                             return quit(traceback.format_exc()) 
 
