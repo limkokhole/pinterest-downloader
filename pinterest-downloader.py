@@ -1049,7 +1049,7 @@ def main():
 
     if len(slash_path) == 3:
         u_url = '/'.join(slash_path)
-        print('[i] Job is download single board by username/boardname/section: {}'.format(u_url))
+        print('[i] Job is download single section by username/boardname/section: {}'.format(u_url))
         # Will err if try to create section by naming 'more_ideas'
         if ( slash_path[-3] in ('search', 'categories', 'topics') ) or ( slash_path[-1] in ['more_ideas'] ):
             return quit('{}'.format('\n[' + x_tag + '] Search, Categories, Topics, more_ideas are not supported.\n') )
@@ -1090,7 +1090,7 @@ def main():
             return quit(traceback.format_exc())
 
     elif len(slash_path) == 1:
-        print('[i] Job is download all boards Job is download all boards by username: {}'.format(slash_path[-1]))
+        print('[i] Job is download all boards by username: {}'.format(slash_path[-1]))
         if slash_path[-1] in ('search', 'categories', 'topics'):
             return quit('{}'.format('\n[' + x_tag + '] Search, Categories and Topics not supported.\n') )
         #boards = get_user_boards( slash_path[-1] )
