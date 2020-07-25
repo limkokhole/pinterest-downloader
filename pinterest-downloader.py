@@ -26,7 +26,7 @@ __credits__ = ['Inspired by https://github.com/SevenLines/pinterest-board-downlo
 __license__ = 'MIT'
 # Version increase if the output file/dir naming incompatible with existing
 #, which might re-download for some files of previous version because of dir/filename not match
-__version__ = 1.6
+__version__ = 1.7
 __maintainer__ = 'Lim Kok Hole'
 __email__ = 'limkokhole@gmail.com'
 __status__ = 'Production'
@@ -728,8 +728,7 @@ def write_log(arg_timestamp_log, save_dir, images, pin, arg_cut):
             log_timestamp = 'log-pinterest-downloader'
     # sanitize enough, no nid max path in case PIN id too long, throws err (too long path)
     # to inform me better than silently guess to slice [:100] early and hide this issue
-    log_path = os.path.join(save_dir, '{}'.format( sanitize(log_timestamp + '.log' )))
-    #print('log_path: ' + log_path)
+    log_path = os.path.join(save_dir, '{}'.format( sanitize(log_timestamp) + '.log' ))
 
     if images:
         with open(log_path, 'w') as f: # Reset before append
