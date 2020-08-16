@@ -30,32 +30,34 @@ Download all images/videos from Pinterest user/board/section.
     log-pinterest-downloader.log file.
 
     positional arguments:
-      path                  Pinterest username, or username/boardname, or link(
-                            /pin/ may include created time )
+      path                  Pinterest username, or username/boardname, or
+                            username/boardname/section, or relevant link( /pin/
+                            may include created time ).
     
     optional arguments:
       -h, --help            show this help message and exit
-      -d DIR, --dir DIR     Specify folder path/name to store. Default is "images"
+      -d DIR, --dir DIR     Specify folder path/name to store. Default is
+                            "images".
       -j THREAD_MAX, --job THREAD_MAX
                             Specify maximum threads when downloading images.
                             Default is number of processors on the machine,
-                            multiplied by 5
+                            multiplied by 5.
       -c CUT, --cut CUT     Specify maximum length of
                             "_TITLE_DESCRIPTION_DATE"(exclude ...) in filename.
       -bt, --board-timestamp
-                            Suffix board directory name with unique timestamp
+                            Suffix board directory name with unique timestamp.
       -lt, --log-timestamp  Suffix log-pinterest-downloader.log filename with
                             unique timestamp. Default filename is log-pinterest-
                             downloader.log. Note: Pin id without
                             Title/Description/Link/Metadata/Created_at will not
                             write to log.
-      -f, --force           Force re-download even if image already exist
+      -f, --force           Force re-download even if image already exist.
       -es, --exclude-section
                             Exclude sections if download from username or board.
       -ps HTTPS_PROXY, --https-proxy HTTPS_PROXY
-                            Set proxy for https
+                            Set proxy for https.
       -p HTTP_PROXY, --http-proxy HTTP_PROXY
-                            Set proxy for http
+                            Set proxy for http.
 
 ### Example Usage:
     $ python3 pinterest-downloader.py # Prompt for insert path
