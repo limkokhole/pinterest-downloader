@@ -143,8 +143,9 @@ def printProgressBar(iteration, total, prefix='', suffix='', decimals=1, length=
 #,"board_url":"/mistafisha/animals/","field_set_key":"react_grid_pin","filter_section_pins":true,"sort":"default"
 #,"layout":"default","page_size":25,"redux_normalize_feed":true},"context":{}}&_=1592340515565
 VER = (None, 'c643827', 'b0e3c4c')
-def get_session(ver_i):
+def get_session(ver_i, proxies):
     s = requests.Session()
+    s.proxies = proxies
     if ver_i == 0:
         s.headers = {
             #'Host': 'www.pinterest.com',
@@ -204,8 +205,8 @@ def get_session(ver_i):
 
 
 '''
-def get_user_boards(username):
-    s = get_session(0)
+def get_user_boards(username, proxies):
+    s = get_session(0, proxies)
     r = s.get('https://www.pinterest.com/{}/'.format(username), timeout=15)
     root = html.fromstring(r.content)
     tag = root.xpath("//script[@id='initial-state']")[0]
@@ -220,8 +221,8 @@ def get_user_boards(username):
 '''
 
 
-def get_pin_info(pin_id, arg_timestamp_log, arg_force_update, arg_dir, arg_cut, arg_el, fs_f_max):
-    s = get_session(0)
+def get_pin_info(pin_id, arg_timestamp_log, arg_force_update, arg_dir, arg_cut, arg_el, fs_f_max, proxies):
+    s = get_session(0, proxies)
 
     r = s.get('https://www.pinterest.com/pin/{}/'.format(pin_id), timeout=15)
     root = html.fromstring(r.content)
@@ -237,8 +238,8 @@ def get_pin_info(pin_id, arg_timestamp_log, arg_force_update, arg_dir, arg_cut, 
         #, is unwise if program make dir in parent directory.
         create_dir(arg_dir)
         write_log( arg_timestamp_log, arg_dir, [images], images['id'], arg_cut )
-        IMG_SESSION = get_session(3)
-        V_SESSION = get_session(4)
+        IMG_SESSION = get_session(3, proxies)
+        V_SESSION = get_session(4, proxies)
         print('[i] Download Pin id: ' + str(images['id']) + ' in directory: ' + arg_dir)
         printProgressBar(0, 1, prefix='[...] Downloading:', suffix='Complete', length=50)
         download_img(images, arg_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_cut, arg_el, fs_f_max)
@@ -248,8 +249,8 @@ def get_pin_info(pin_id, arg_timestamp_log, arg_force_update, arg_dir, arg_cut, 
     print()
 
 
-def get_board_info(board_name, exclude_section, section):
-    s = get_session(0)
+def get_board_info(board_name, exclude_section, section, proxies):
+    s = get_session(0, proxies)
 
     r = s.get('https://www.pinterest.com/{}/'.format(board_name), timeout=15)
     root = html.fromstring(r.content)
@@ -287,9 +288,9 @@ def get_board_info(board_name, exclude_section, section):
         return boards, sections
 
 
-def fetch_boards(uname):
+def fetch_boards(uname, proxies):
 
-    s = get_session(1)
+    s = get_session(1, proxies)
     bookmark = None
     boards = []
 
@@ -968,6 +969,8 @@ def main():
         Note: Pin id without Title/Description/Link/Metadata/Created_at will not write to log.')
     arg_parser.add_argument('-f', '--force', action='store_true', help='Force re-download even if image already exist')
     arg_parser.add_argument('-es', '--exclude-section', dest='exclude_section', action='store_true', help='Exclude sections if download from username or board.')
+    arg_parser.add_argument('-ps', '--https-proxy', help='Set proxy for https')
+    arg_parser.add_argument('-p', '--http-proxy', help='Set proxy for http')
     try:
         args, remaining  = arg_parser.parse_known_args()
     except SystemExit: # Normal if --help, catch here to avoid main() global ex catch it
@@ -1036,6 +1039,8 @@ def main():
             #os.statvfs('.').f_frsize - 1 = 4095 # full path max bytes
             fs_f_max = os.statvfs('.').f_namemax
 
+    proxies = dict(http=args.http_proxy, https=args.https_proxy)
+
     if len(slash_path) == 2:
         # may copy USERNAME/boards/ links
         if slash_path[-1].strip() == 'boards':
@@ -1044,7 +1049,7 @@ def main():
             print('[i] Job is download video/image of single pin page.')
             pin_id = slash_path[-1] #bk first before reset 
             slash_path = [] # reset for later in case exception
-            get_pin_info(pin_id.strip(), args.log_timestamp, args.force, args.dir, args.cut, arg_el, fs_f_max)
+            get_pin_info(pin_id.strip(), args.log_timestamp, args.force, args.dir, args.cut, arg_el, fs_f_max, proxies)
 
     if len(slash_path) == 3:
         u_url = '/'.join(slash_path)
@@ -1052,11 +1057,11 @@ def main():
         # Will err if try to create section by naming 'more_ideas'
         if ( slash_path[-3] in ('search', 'categories', 'topics') ) or ( slash_path[-1] in ['more_ideas'] ):
             return quit('{}'.format('\n[' + x_tag + '] Search, Categories, Topics, more_ideas are not supported.\n') )
-        board = get_board_info(u_url, False, slash_path[-1]) # need_get_section's True/False not used
+        board = get_board_info(u_url, False, slash_path[-1], proxies) # need_get_section's True/False not used
         try: 
-            IMGS_SESSION = get_session(2)
-            IMG_SESSION = get_session(3)
-            V_SESSION = get_session(4)
+            IMGS_SESSION = get_session(2, proxies)
+            IMG_SESSION = get_session(3, proxies)
+            V_SESSION = get_session(4, proxies)
             fetch_imgs( board, slash_path[-3], slash_path[-2], slash_path[-1], args.board_timestamp
                 , args.log_timestamp, args.force, args.dir, args.thread_max
                 , IMGS_SESSION, IMG_SESSION, V_SESSION, args.cut, arg_el, fs_f_max )
@@ -1068,11 +1073,11 @@ def main():
         print('[i] Job is download single board by username/boardname: {}'.format(u_url))
         if slash_path[-2] in ('search', 'categories', 'topics'):
             return quit('{}'.format('\n[' + x_tag + '] Search, Categories and Topics not supported.\n') )
-        board, sections = get_board_info(u_url, args.exclude_section, None)
+        board, sections = get_board_info(u_url, args.exclude_section, None, proxies)
         try: 
-            IMGS_SESSION = get_session(2)
-            IMG_SESSION = get_session(3)
-            V_SESSION = get_session(4)
+            IMGS_SESSION = get_session(2, proxies)
+            IMG_SESSION = get_session(3, proxies)
+            V_SESSION = get_session(4, proxies)
             fetch_imgs( board, slash_path[-2], slash_path[-1], None, args.board_timestamp, args.log_timestamp, args.force
             , args.dir, args.thread_max, IMGS_SESSION, IMG_SESSION, V_SESSION, args.cut, arg_el, fs_f_max )
             if sections:
@@ -1080,7 +1085,7 @@ def main():
                 print('[i] Trying to get ' + str(sec_c) + ' section{}'.format('s' if sec_c > 1 else ''))
                 for sec in sections:
                     s_url = u_url + '/' + sec['slug']
-                    board = get_board_info(s_url, False, sec['slug']) # False not using bcoz sections not [] already
+                    board = get_board_info(s_url, False, sec['slug'], proxies) # False not using bcoz sections not [] already
                     fetch_imgs( board, slash_path[-2], slash_path[-1], sec['slug'], args.board_timestamp
                         , args.log_timestamp, args.force, args.dir, args.thread_max
                         , IMGS_SESSION, IMG_SESSION, V_SESSION, args.cut, arg_el, fs_f_max )
@@ -1094,10 +1099,10 @@ def main():
             return quit('{}'.format('\n[' + x_tag + '] Search, Categories and Topics not supported.\n') )
         #boards = get_user_boards( slash_path[-1] )
         try: 
-            boards = fetch_boards( slash_path[-1] )
-            IMGS_SESSION = get_session(2)
-            IMG_SESSION = get_session(3)
-            V_SESSION = get_session(4)
+            boards = fetch_boards( slash_path[-1], proxies )
+            IMGS_SESSION = get_session(2, proxies)
+            IMG_SESSION = get_session(3, proxies)
+            V_SESSION = get_session(4, proxies)
             # Multiple logs saved inside relevant board dir
             for index, board in enumerate(boards):
                 if 'name' not in board:
@@ -1119,10 +1124,10 @@ def main():
                     if u_url[0] == '/':
                         u_url = u_url[1:]
                     # ags.es placeholder below always False bcoz above already check (not args.exclude_section) 
-                    board, sections = get_board_info(u_url, False, None)
+                    board, sections = get_board_info(u_url, False, None, proxies)
                     for sec in sections:
                         s_url = u_url + '/' + sec['slug']
-                        board = get_board_info(s_url, False, sec['slug']) 
+                        board = get_board_info(s_url, False, sec['slug'], proxies) 
                         sec_uname, sec_bname = u_url.split('/')
                         fetch_imgs( board, sec_uname, sec_bname, sec['slug'], args.board_timestamp
                             , args.log_timestamp, args.force, args.dir, args.thread_max
