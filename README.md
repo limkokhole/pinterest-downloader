@@ -29,28 +29,32 @@ Download all images/videos from Pinterest user/board/section.
     log-pinterest-downloader.log file.
 
     positional arguments:
-    path                  Pinterest username, or username/boardname, or link(
+      path                  Pinterest username, or username/boardname, or link(
                             /pin/ may include created time )
-
+    
     optional arguments:
-    -h, --help            show this help message and exit
-    -d DIR, --dir DIR     Specify folder path/name to store. Default is "images"
-    -j THREAD_MAX, --job THREAD_MAX
+      -h, --help            show this help message and exit
+      -d DIR, --dir DIR     Specify folder path/name to store. Default is "images"
+      -j THREAD_MAX, --job THREAD_MAX
                             Specify maximum threads when downloading images.
                             Default is number of processors on the machine,
                             multiplied by 5
-    -c CUT, --cut CUT     Specify maximum length of
+      -c CUT, --cut CUT     Specify maximum length of
                             "_TITLE_DESCRIPTION_DATE"(exclude ...) in filename.
-    -bt, --board-timestamp
+      -bt, --board-timestamp
                             Suffix board directory name with unique timestamp
-    -lt, --log-timestamp  Suffix log-pinterest-downloader.log filename with
+      -lt, --log-timestamp  Suffix log-pinterest-downloader.log filename with
                             unique timestamp. Default filename is log-pinterest-
                             downloader.log. Note: Pin id without
                             Title/Description/Link/Metadata/Created_at will not
                             write to log.
-    -f, --force           Force re-download even if image already exist
-    -es, --exclude-section
+      -f, --force           Force re-download even if image already exist
+      -es, --exclude-section
                             Exclude sections if download from username or board.
+      -ps HTTPS_PROXY, --https-proxy HTTPS_PROXY
+                            Set proxy for https
+      -p HTTP_PROXY, --http-proxy HTTP_PROXY
+                            Set proxy for http
 
 ### Example Usage:
     $ python3 pinterest-downloader.py # Prompt for insert path
@@ -62,6 +66,7 @@ Download all images/videos from Pinterest user/board/section.
     $ python3 pinterest-downloader.py https://www.pinterest.com/antonellomiglio/computer/ -c 40 # Default already good enough
     $ python3 pinterest-downloader.py https://www.pinterest.com/antonellomiglio/computer/ -j 666 # Default already fast enough
     $ python3 pinterest-downloader.py https://www.pinterest.com/Foodrecipessmith/food-recipes/ -es # Exclude sections
+    $ python3 pinterest-downloader.py https://www.pinterest.com/Foodrecipessmith/food-recipes/ -ps 'socks4://123.123.123.123:12345' -p 'socks4://123.123.123.123:12345' # set proxies
 
 ### Example Output:
     xb@dnxb:~/Downloads/pinterest/pinterest-downloader$ python3 pinterest-downloader.py -d comp https://www.pinterest.com/antonellomiglio/computer/ 
