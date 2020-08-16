@@ -950,9 +950,9 @@ def main():
     arg_parser = argparse.ArgumentParser(description='Download ALL board/section from ' + pinterest_logo +  'interest by username, username/boardname, username/boardname/section or link. Support image and video.\n\
         Filename compose of PinId_Title_Description_Date.Ext. PinId always there while the rest is optional.\n\
         If filename too long will endswith ... and you can check details in log-pinterest-downloader.log file.')
-    arg_parser.add_argument('path', nargs='?', help='Pinterest username, or username/boardname, or link( /pin/ may include created time )')
-    arg_parser.add_argument('-d', '--dir', dest='dir', type=str, default='images', help='Specify folder path/name to store. Default is "images"')
-    arg_parser.add_argument('-j', '--job', dest='thread_max', type=int, default=0, help='Specify maximum threads when downloading images. Default is number of processors on the machine, multiplied by 5')
+    arg_parser.add_argument('path', nargs='?', help='Pinterest username, or username/boardname, or username/boardname/section, or relevant link( /pin/ may include created time ).')
+    arg_parser.add_argument('-d', '--dir', dest='dir', type=str, default='images', help='Specify folder path/name to store. Default is "images".')
+    arg_parser.add_argument('-j', '--job', dest='thread_max', type=int, default=0, help='Specify maximum threads when downloading images. Default is number of processors on the machine, multiplied by 5.')
     # Username or Boardname might longer than 255 bytes
     # Username max is 100(not allow 3 bytes unicode)
     # Section/Boardname(Title) max are 50(count as singe char(i.e. 3 bytes unicode same as 1 byte ASCII), not bytes)
@@ -964,13 +964,13 @@ def main():
     arg_parser.add_argument('-c', '--cut', type=int, default=-1, help='Specify maximum length of "_TITLE_DESCRIPTION_DATE"(exclude ...) in filename.')
     # Disable since better become default (so no more calc full path for 259(-el is exclude \\?\ = 255), instead only single path 259):
     #arg_parser.add_argument('-el', '--extended-length', dest='extended_len', type=int, default=-1, help='Specify Windows extended-length by prefix \\\\?\\ in output path. E.g. 339 work in my system.')
-    arg_parser.add_argument('-bt', '--board-timestamp', dest='board_timestamp', action='store_true', help='Suffix board directory name with unique timestamp')
+    arg_parser.add_argument('-bt', '--board-timestamp', dest='board_timestamp', action='store_true', help='Suffix board directory name with unique timestamp.')
     arg_parser.add_argument('-lt', '--log-timestamp', dest='log_timestamp', action='store_true', help='Suffix log-pinterest-downloader.log filename with unique timestamp. Default filename is log-pinterest-downloader.log.\n\
         Note: Pin id without Title/Description/Link/Metadata/Created_at will not write to log.')
-    arg_parser.add_argument('-f', '--force', action='store_true', help='Force re-download even if image already exist')
+    arg_parser.add_argument('-f', '--force', action='store_true', help='Force re-download even if image already exist.')
     arg_parser.add_argument('-es', '--exclude-section', dest='exclude_section', action='store_true', help='Exclude sections if download from username or board.')
-    arg_parser.add_argument('-ps', '--https-proxy', help='Set proxy for https')
-    arg_parser.add_argument('-p', '--http-proxy', help='Set proxy for http')
+    arg_parser.add_argument('-ps', '--https-proxy', help='Set proxy for https.')
+    arg_parser.add_argument('-p', '--http-proxy', help='Set proxy for http.')
     try:
         args, remaining  = arg_parser.parse_known_args()
     except SystemExit: # Normal if --help, catch here to avoid main() global ex catch it
