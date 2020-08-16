@@ -3,7 +3,7 @@ Download all images/videos from Pinterest user/board/section.
 
 ### Some features:
 
-- [x] Accept input as /username/, /username/boardname/, /username/boardname/section, 
+- [x] Accept input as /username/, /username/boardname/, /username/boardname/section, pin/PinID
 - [x] Accept input as link of /username/, /username/boardname/, /username/boardname/section, and /pin/
 - [x] Able download sections of boards of username.
 - [x] High resolution. 
