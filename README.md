@@ -60,7 +60,7 @@ Download all images/videos from Pinterest user/board/section.
                             Set proxy for http.
 
 ### Example Usage:
-    $ python3 pinterest-downloader.py # Prompt for insert path
+    $ python3 pinterest-downloader.py # Prompt for insert path. Note: Only support python 3, not python 2
     $ export PYTHONIOENCODING=utf8; python3 pinterest-downloader.py # If you get "'gbk' codec can't encode character" error
     $ python3 pinterest-downloader.py https://www.pinterest.com/antonellomiglio/computer/ 
     $ python3 pinterest-downloader.py https://www.pinterest.com/antonellomiglio/computer/ -d comp
