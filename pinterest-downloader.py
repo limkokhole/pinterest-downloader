@@ -988,14 +988,12 @@ def main():
     # Convert % format of unicode url when copied from Firefox 
     # This is important especially section need compare the section name later
     url_path = urllib.parse.unquote_plus(url_path) 
-    if url_path.endswith('/'):
-        url_path = url_path[:-1]
+    url_path = url_path.rstrip('/')
     if '://' in url_path:
         url_path = '/'.join( url_path.split('/')[3:] )
         if not url_path:
             return quit('{} {} {}'.format('\n[' + x_tag + '] Neither username/boardname nor valid link: ', args.path, '\n') )
-    if url_path.startswith('/'):
-        url_path = url_path[1:]
+    url_path = url_path.lstrip('/')
     slash_path = url_path.split('/')
     if '.' in slash_path[0]:
         # Impossible dot in username, so it means host without https:// and nid remove
@@ -1119,10 +1117,7 @@ def main():
                     print('[i] Trying to get ' + str(sec_c) + ' section{}'.format('s' if sec_c > 1 else ''))
                     u_url = board['url'] 
                     # E.g. /example/commodore-computers/ need trim to example/commodore-computers
-                    if u_url[-1] == '/': 
-                        u_url = u_url[:-1]
-                    if u_url[0] == '/':
-                        u_url = u_url[1:]
+                    u_url = u_url.strip('/')
                     # ags.es placeholder below always False bcoz above already check (not args.exclude_section) 
                     board, sections = get_board_info(u_url, False, None, proxies)
                     for sec in sections:
