@@ -249,10 +249,10 @@ def get_pin_info(pin_id, arg_timestamp_log, arg_force_update, arg_dir, arg_cut, 
     print()
 
 
-def get_board_info(board_name, exclude_section, section, proxies):
+def get_board_info(board_or_sec_path, exclude_section, section, proxies):
     s = get_session(0, proxies)
 
-    r = s.get('https://www.pinterest.com/{}/'.format(board_name), timeout=15)
+    r = s.get('https://www.pinterest.com/{}/'.format(board_or_sec_path), timeout=15)
     root = html.fromstring(r.content)
     tag = root.xpath("//script[@id='initial-state']")[0]
     initial_data = json.loads(tag.text)
@@ -987,8 +987,7 @@ def main():
     url_path = args.path.strip().split('?')[0].split('#')[0]
     # Convert % format of unicode url when copied from Firefox 
     # This is important especially section need compare the section name later
-    url_path = urllib.parse.unquote_plus(url_path) 
-    url_path = url_path.rstrip('/')
+    url_path = urllib.parse.unquote_plus(url_path).rstrip('/')
     if '://' in url_path:
         url_path = '/'.join( url_path.split('/')[3:] )
         if not url_path:
@@ -1050,12 +1049,12 @@ def main():
             get_pin_info(pin_id.strip(), args.log_timestamp, args.force, args.dir, args.cut, arg_el, fs_f_max, proxies)
 
     if len(slash_path) == 3:
-        u_url = '/'.join(slash_path)
-        print('[i] Job is download single section by username/boardname/section: {}'.format(u_url))
+        sec_path = '/'.join(slash_path)
+        print('[i] Job is download single section by username/boardname/section: {}'.format(sec_path))
         # Will err if try to create section by naming 'more_ideas'
         if ( slash_path[-3] in ('search', 'categories', 'topics') ) or ( slash_path[-1] in ['more_ideas'] ):
             return quit('{}'.format('\n[' + x_tag + '] Search, Categories, Topics, more_ideas are not supported.\n') )
-        board = get_board_info(u_url, False, slash_path[-1], proxies) # need_get_section's True/False not used
+        board = get_board_info(sec_path, False, slash_path[-1], proxies) # need_get_section's True/False not used
         try: 
             IMGS_SESSION = get_session(2, proxies)
             IMG_SESSION = get_session(3, proxies)
@@ -1067,11 +1066,11 @@ def main():
             return quit(traceback.format_exc())
 
     elif len(slash_path) == 2:
-        u_url = '/'.join(slash_path)
-        print('[i] Job is download single board by username/boardname: {}'.format(u_url))
+        board_path = '/'.join(slash_path)
+        print('[i] Job is download single board by username/boardname: {}'.format(board_path))
         if slash_path[-2] in ('search', 'categories', 'topics'):
             return quit('{}'.format('\n[' + x_tag + '] Search, Categories and Topics not supported.\n') )
-        board, sections = get_board_info(u_url, args.exclude_section, None, proxies)
+        board, sections = get_board_info(board_path, args.exclude_section, None, proxies)
         try: 
             IMGS_SESSION = get_session(2, proxies)
             IMG_SESSION = get_session(3, proxies)
@@ -1082,8 +1081,8 @@ def main():
                 sec_c = len(sections)
                 print('[i] Trying to get ' + str(sec_c) + ' section{}'.format('s' if sec_c > 1 else ''))
                 for sec in sections:
-                    s_url = u_url + '/' + sec['slug']
-                    board = get_board_info(s_url, False, sec['slug'], proxies) # False not using bcoz sections not [] already
+                    sec_path = board_path + '/' + sec['slug']
+                    board = get_board_info(sec_path, False, sec['slug'], proxies) # False not using bcoz sections not [] already
                     fetch_imgs( board, slash_path[-2], slash_path[-1], sec['slug'], args.board_timestamp
                         , args.log_timestamp, args.force, args.dir, args.thread_max
                         , IMGS_SESSION, IMG_SESSION, V_SESSION, args.cut, arg_el, fs_f_max )
@@ -1115,15 +1114,14 @@ def main():
                 if (not args.exclude_section) and (board['section_count'] > 0):
                     sec_c = board['section_count']
                     print('[i] Trying to get ' + str(sec_c) + ' section{}'.format('s' if sec_c > 1 else ''))
-                    u_url = board['url'] 
                     # E.g. /example/commodore-computers/ need trim to example/commodore-computers
-                    u_url = u_url.strip('/')
+                    board_path = board['url'].strip('/')
                     # ags.es placeholder below always False bcoz above already check (not args.exclude_section) 
-                    board, sections = get_board_info(u_url, False, None, proxies)
+                    board, sections = get_board_info(board_path, False, None, proxies)
                     for sec in sections:
-                        s_url = u_url + '/' + sec['slug']
-                        board = get_board_info(s_url, False, sec['slug'], proxies) 
-                        sec_uname, sec_bname = u_url.split('/')
+                        sec_path = board_path + '/' + sec['slug']
+                        board = get_board_info(sec_path, False, sec['slug'], proxies) 
+                        sec_uname, sec_bname = board_path.split('/')
                         fetch_imgs( board, sec_uname, sec_bname, sec['slug'], args.board_timestamp
                             , args.log_timestamp, args.force, args.dir, args.thread_max
                             , IMGS_SESSION, IMG_SESSION, V_SESSION, args.cut, arg_el, fs_f_max )
