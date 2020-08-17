@@ -68,7 +68,7 @@ Download all images/videos from Pinterest user/board/section.
     $ python3 pinterest-downloader.py https://www.pinterest.com/antonellomiglio/computer/ -bt -lt -d comp -f
     $ python3 pinterest-downloader.py https://www.pinterest.com/antonellomiglio/computer/ -c 40 # Default already good enough
     $ python3 pinterest-downloader.py https://www.pinterest.com/antonellomiglio/computer/ -j 666 # Default already fast enough
-    $ python3 pinterest-downloader.py https://www.pinterest.com/Foodrecipessmith/food-recipes/ -ps 'socks4://123.123.123.123:12345' -p 'socks4://123.123.123.123:12345' # set proxies
+    $ python3 pinterest-downloader.py https://www.pinterest.com/Foodrecipessmith/food-recipes/ -ps "socks4://123.123.123.123:12345" -p "socks4://123.123.123.123:12345" # set proxies
     $ pin https://www.pinterest.com/antonellomiglio/computer/  # make alias/function in ~/.bash_aliases(or any shell startup script) to easier type
     $ pin https://www.pinterest.com/Foodrecipessmith/ # Download all boards by username
     $ pin https://www.pinterest.com/Foodrecipessmith/food-recipes/ # Download all sections and images of boards
