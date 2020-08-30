@@ -1130,7 +1130,11 @@ def main():
             return quit(traceback.format_exc())
 
     end_time = int(time.time())
-    print('[i] Time Spent: ' + str(timedelta(seconds= end_time - start_time)))
+    try:
+        print('[i] Time Spent: ' + str(timedelta(seconds= end_time - start_time)))
+    except OverflowError:
+        # after 999999999 days OR ~2,739,726 years, test case: str(timedelta(seconds= 86400000000000))
+        print('Can you revive me please? Thanks.')
     
 
 if __name__ == '__main__':
