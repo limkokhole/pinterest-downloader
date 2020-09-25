@@ -225,10 +225,10 @@ def get_pin_info(pin_id, arg_timestamp_log, arg_force_update, arg_dir, arg_cut, 
     s = get_session(0, proxies)
 
     while 1:
+        r = s.get('https://www.pinterest.com/pin/{}/'.format(pin_id), timeout=15)
+        root = html.fromstring(r.content)
+        #print(root)
         try:
-            r = s.get('https://www.pinterest.com/pin/{}/'.format(pin_id), timeout=15)
-            root = html.fromstring(r.content)
-            #print(root)
             tag = root.xpath("//script[@id='initial-state']")[0]
             break
         except IndexError: #list index out of range
