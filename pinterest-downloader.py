@@ -224,10 +224,16 @@ def get_user_boards(username, proxies):
 def get_pin_info(pin_id, arg_timestamp_log, arg_force_update, arg_dir, arg_cut, arg_el, fs_f_max, proxies):
     s = get_session(0, proxies)
 
-    r = s.get('https://www.pinterest.com/pin/{}/'.format(pin_id), timeout=15)
-    root = html.fromstring(r.content)
-    #print(root)
-    tag = root.xpath("//script[@id='initial-state']")[0]
+    while 1:
+        try:
+            r = s.get('https://www.pinterest.com/pin/{}/'.format(pin_id), timeout=15)
+            root = html.fromstring(r.content)
+            #print(root)
+            tag = root.xpath("//script[@id='initial-state']")[0]
+            break
+        except IndexError: #list index out of range
+            print('[E] Failed. Retry after 5 seconds...')
+            time.sleep(5)
     initial_data = json.loads(tag.text)
     #print(initial_data)
     images = initial_data['resourceResponses'][0]['response']['data']
