@@ -1046,7 +1046,7 @@ def main():
 
     if len(slash_path) == 2:
         # may copy USERNAME/boards/ links
-        if slash_path[-1].strip() == 'boards':
+        if slash_path[-1].strip() in ('boards', '_saved', '_created', 'pins'):
             slash_path = slash_path[:-1]
         elif slash_path[-2].strip() == 'pin':
             print('[i] Job is download video/image of single pin page.')
