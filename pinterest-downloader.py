@@ -547,28 +547,35 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_
                 #print(IMG_SESSION.headers)
                 
                 #url = 'https://httpbin.org/get'
-                r = IMG_SESSION.get(url, stream=True, timeout=15)
+                is_ok = False
+                for t in (15, 30):
+                    try:
+                        r = IMG_SESSION.get(url, stream=True, timeout=t)
+                        is_ok = True
+                        break
+                    except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
+                        cprint(''.join([ HIGHER_RED, '{}'.format('\n[' + x_tag + '] Image Timeout (Retry next).\n') ]), attrs=BOLD_ONLY, end='' )
                 
                 #print(url + ' ok? '  + str(r.ok))
 
-                if r.ok:
+                if is_ok and r.ok: # not `or`, 1st check is ensure no throws, 2nd check is ensure valid url
                     #print(r.text)
                     try:
                         with open(file_path, 'wb') as f:
                             for chunk in r:
                                 f.write(chunk)
                                 #raise(requests.exceptions.ConnectionError)
-                    except requests.exceptions.ConnectionError:
-                        r = IMG_SESSION.get(url, stream=True, timeout=15)
+                    except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
                         try:
+                            r = IMG_SESSION.get(url, stream=True, timeout=30)
                             with open(file_path, 'wb') as f:
                                 for chunk in r:
                                     f.write(chunk)
                                     #raise(requests.exceptions.ConnectionError)
-                        except requests.exceptions.ConnectionError:
+                        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
                             cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this image at'
                             , file_path, 'failed :', url, '\n') ]), attrs=BOLD_ONLY, end='' )
-                            cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to delete this image manually and retry later.\n\n') ]), attrs=BOLD_ONLY, end='' )  
+                            cprint(''.join([ HIGHER_RED, '%s' % ('\n[e1] You may want to delete this image manually and retry later.\n\n') ]), attrs=BOLD_ONLY, end='' )  
                     except OSError: # e.g. File name too long
                         cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this image at'
                             , file_path, 'failed :', url, '\n') ]), attrs=BOLD_ONLY, end='' )
@@ -595,25 +602,34 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_
                             file_path = '\\\\?\\' + os.path.abspath(file_path)
                         
                         if not os.path.exists(file_path) or arg_force_update:
-                            r = IMG_SESSION.get(url, stream=True, timeout=15)
-                            if r.ok:
+                            is_ok = False
+                            for t in (15, 30):
+                                try:
+                                    # timeout=(connect_timeout, read_timeout)
+                                    # https://github.com/psf/requests/issues/3099#issuecomment-215498005
+                                    r = IMG_SESSION.get(url, stream=True, timeout=(t, None))
+                                    is_ok = True
+                                    break
+                                except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
+                                    pass
+                            if is_ok and r.ok:
 
                                 try:
                                     with open(file_path, 'wb') as f:
                                         for chunk in r:
                                             f.write(chunk)
                                         #raise(requests.exceptions.ConnectionError)
-                                except requests.exceptions.ConnectionError:
-                                    r = IMG_SESSION.get(url, stream=True, timeout=15)
+                                except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError, requests.exceptions.ChunkedEncodingError) as e:
+                                    r = IMG_SESSION.get(url, stream=True, timeout=(30, None))
                                     try:
                                         with open(file_path, 'wb') as f:
                                             for chunk in r:
                                                 f.write(chunk)
                                             #raise(requests.exceptions.ConnectionError)
-                                    except requests.exceptions.ConnectionError:
+                                    except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError, requests.exceptions.ChunkedEncodingError) as e:
                                         cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this image at'
                                             , file_path, 'failed :', url, '\n') ]), attrs=BOLD_ONLY, end='' )
-                                        cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to delete this image manually and retry later.\n\n') ]), attrs=BOLD_ONLY, end='' )  
+                                        cprint(''.join([ HIGHER_RED, '%s' % ('\n[e2] You may want to delete this image manually and retry later.\n\n') ]), attrs=BOLD_ONLY, end='' )  
 
                                 except OSError: # e.g. File name too long
                                     cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Retried this image at'
@@ -656,29 +672,37 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_
                     file_path = '\\\\?\\' + os.path.abspath(file_path)
 
                 if not os.path.exists(file_path) or arg_force_update:
-                    
-                    r = V_SESSION.get(vurl, stream=True, timeout=15)
+                   
+                    is_ok = False
+                    for t in (15, 30):
+                        try:
+                            r = V_SESSION.get(vurl, stream=True, timeout=(t, None))
+                            is_ok = True
+                            break
+                        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
+                            cprint(''.join([ HIGHER_RED, '{}'.format('\n[' + x_tag + '] Video Timeout (Retry next).\n') ]), attrs=BOLD_ONLY, end='' )
                     
                     #print(vurl + ' ok? '  + str(r.ok))
 
-                    if r.ok:
+                    if is_ok and r.ok:
                         #print(r.text)
                         try:
                             with open(file_path, 'wb') as f:
                                 for chunk in r:
                                     f.write(chunk)
                                     #raise(requests.exceptions.ConnectionError)
-                        except requests.exceptions.ConnectionError:
-                            r = V_SESSION.get(vurl, stream=True, timeout=15)
+                        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError, requests.exceptions.ChunkedEncodingError) as e:
+                            # requests.exceptions.ChunkedEncodingError: ("Connection broken: ConnectionResetError(104, 'Connection reset by peer')", ConnectionResetError(104, 'Connection reset by peer'))
                             try:
+                                r = V_SESSION.get(vurl, stream=True, timeout=(30, None))
                                 with open(file_path, 'wb') as f:
                                     for chunk in r:
                                         f.write(chunk)
                                         #raise(requests.exceptions.ConnectionError)
-                            except requests.exceptions.ConnectionError:
+                            except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError, requests.exceptions.ChunkedEncodingError) as e:
                                 cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this video at'
                                     , file_path, 'failed :', vurl, '\n') ]), attrs=BOLD_ONLY, end='' )
-                                cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to delete this video manually and retry later.\n\n') ]), attrs=BOLD_ONLY, end='' )  
+                                cprint(''.join([ HIGHER_RED, '%s' % ('\n[e3] You may want to delete this video manually and retry later.\n\n') ]), attrs=BOLD_ONLY, end='' )  
                         except OSError: # e.g. File name still too long
                             cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this video at'
                                 , file_path, 'failed :', vurl, '\n') ]), attrs=BOLD_ONLY, end='' )
