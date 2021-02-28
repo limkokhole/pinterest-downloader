@@ -712,7 +712,7 @@ def create_dir(save_dir):
         # ... 2045th path? how is it possible create new dir/file from that point?
         # So only need to care for individual component 
         #... which max total(estimate) is uname 100 + (boardname 50*4)+( section 50*3) = ~450 bytes only.
-        # Then add max file 255 - 705, still far away from 2045th byte(or 335 4_bytes utf-8)
+        # Then add max file 255 bcome 705, still far away from 2045th byte(or 335 4_bytes utf-8)
         # So you direct throws OSError enough to remind that user don't make insane fs hier
 
         cprint(''.join([ HIGHER_RED, '%s' % ('\nIt might causes by too long(2045 bytes) in full path.\
