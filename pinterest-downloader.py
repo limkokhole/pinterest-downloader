@@ -1046,6 +1046,8 @@ def main():
 
     if len(slash_path) == 2:
         # may copy USERNAME/boards/ links
+        # _saved and _created only shows instead of boards if logged in, e.g. user maryellengolden
+        # pins under _saved, e.g. user maryellengolden
         if slash_path[-1].strip() in ('boards', '_saved', '_created', 'pins'):
             slash_path = slash_path[:-1]
         elif slash_path[-2].strip() == 'pin':
