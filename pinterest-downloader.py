@@ -26,7 +26,7 @@ __credits__ = ['Inspired by https://github.com/SevenLines/pinterest-board-downlo
 __license__ = 'MIT'
 # Version increase if the output file/dir naming incompatible with existing
 #, which might re-download for some files of previous version because of dir/filename not match
-__version__ = 1.7
+__version__ = 1.8
 __maintainer__ = 'Lim Kok Hole'
 __email__ = 'limkokhole@gmail.com'
 __status__ = 'Production'
@@ -363,26 +363,28 @@ def fetch_boards(uname, proxies):
 def sanitize(path):
     # trim multiple whitespaces # ".." is the responsibilities of get max path
 
-    #If using .replace('  ', ' ') will only replace once round, e.g. '    ' become 
+    # Use PurePath instead of os.path.basename  https://stackoverflow.com/a/31273488/1074998 , e.g.:
+    #>>> PurePath( '/home/iced/..'.replace('..', '') ).parts[-1] # get 'iced'
+    #>>> os.path.basename('/home/iced/..'.replace('..', '')) # get empty ''
+    # Ensure .replace('..', '') is last replacement before .strip() AND not replace back to dot '.'
+    # https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
+    
+    # For portable to move filename between linux <-> win, should use IS_WIN only (but still can't care if case sensitive filename move to case in-sensitive filesystem). 
+    # IS_WIN:
+    path = path.replace('<', '').replace('>', '').replace('"', '\'').replace('?', '').replace('*', '').replace('/', '_').replace('\\', '_').replace('|', '_').replace(':', '_').replace('.', '_').strip()
+    # Linux:
+    #path.replace('/', '|').replace(':', '_').replace('.', '_').strip()
+
+    # Put this after replace patterns above bcoz 2 distinct spaces may merge together become multiple-spaces, e.g. after ' ? ' replace to '  '
+    # If using .replace('  ', ' ') will only replace once round, e.g. '    ' become 
     path = ' '.join(path.split()) 
 
-    if IS_WIN:
-        # Use PurePath instead of os.path.basename  https://stackoverflow.com/a/31273488/1074998 , e.g.:
-        #>>> PurePath( '/home/iced/..'.replace('..', '') ).parts[-1] # get 'iced'
-        #>>> os.path.basename('/home/iced/..'.replace('..', '')) # get empty ''
-        # Ensure .replace('..', '') is last replacement before .strip() AND not replace back to dot '.'
-        # https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
-        p = PurePath( path.replace('<', '').replace('>', '').replace('"', '\'').replace('?', '').replace('*', '').replace('/', '_').replace('\\', '_').replace('|', '_').replace(':', '_').replace('.', '_').strip() )
-        if p.parts:
-            return p.parts[-1]
-        else:
-            return ''
+    p = PurePath( path )
+
+    if p.parts:
+        return p.parts[-1]
     else:
-        p = PurePath( path.replace('/', '|').replace(':', '_').replace('.', '_').strip() )
-        if p.parts:
-            return p.parts[-1]
-        else:
-            return ''
+        return ''
 
 
 # The filesystem limits is 255(normal) , 242(docker) or 143((eCryptfs) bytes
@@ -433,8 +435,12 @@ def get_output_file_path(url, arg_cut, fs_f_max, image_id, human_fname, save_dir
 
     pin_id_str = sanitize(str(image_id))
     basename = os.path.basename(url) # basename not enough to handle '..', but will sanitize later
-    # throws ValueError is fine bcoz it's not normal 
-    _, ext = basename.split('.')
+    # throws ValueError is fine bcoz it's not normal
+
+    # Test case need consider what if multiple dots in basename
+    #human_fname_unused = '.'.join(basename.split('.')[:-1]) # this project already has human_fname, but other project can use this
+    ext = basename.split('.')[-1]
+
     ext = sanitize(ext)
     if not ext.strip(): # Ensure add hard-coded extension to avoid empty id and leave single dot in next step
         ext = 'unknown'
@@ -763,7 +769,7 @@ def write_log(arg_timestamp_log, save_dir, images, pin, arg_cut):
 
     if images:
         with open(log_path, 'w') as f: # Reset before append
-            f.write('Pinterest Downloader: Version 1.1\n\n') # Easy to recognize if future want to change something
+            f.write('Pinterest Downloader: Version ' + str(__version__)  + '\n\n') # Easy to recognize if future want to change something
         skipped_total = 0
         for log_i, image in enumerate(images):
             if 'id' not in image:
