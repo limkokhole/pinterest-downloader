@@ -626,8 +626,8 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_
                                             f.write(chunk)
                                         #raise(requests.exceptions.ConnectionError)
                                 except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError, requests.exceptions.ChunkedEncodingError) as e:
-                                    r = IMG_SESSION.get(url, stream=True, timeout=(30, None))
                                     try:
+                                        r = IMG_SESSION.get(url, stream=True, timeout=(30, None))
                                         with open(file_path, 'wb') as f:
                                             for chunk in r:
                                                 f.write(chunk)
