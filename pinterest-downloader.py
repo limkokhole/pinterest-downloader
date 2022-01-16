@@ -194,7 +194,7 @@ def get_session(ver_i, proxies):
             'X-Requested-With': 'XMLHttpRequest',
             'X-APP-VERSION': VER[ver_i],
             'X-Pinterest-AppState': 'active',
-            'X-Pinterest-Source-Url': '/ackohole/a/sec2/', #[todo:0]
+            #'X-Pinterest-Source-Url': '/ackohole/a/sec2/', #[todo:0]
             'X-Pinterest-PWS-Handler': 'www/[username]/[slug]/[section_slug].js',
             'DNT': '1',
             'Connection': 'keep-alive',
