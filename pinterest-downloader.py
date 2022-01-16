@@ -142,7 +142,7 @@ def printProgressBar(iteration, total, prefix='', suffix='', decimals=1, length=
 #'source_url=/mistafisha/animals/&data={"options":{"isPrefetch":false,"board_id":"53761857990790784"
 #,"board_url":"/mistafisha/animals/","field_set_key":"react_grid_pin","filter_section_pins":true,"sort":"default"
 #,"layout":"default","page_size":25,"redux_normalize_feed":true},"context":{}}&_=1592340515565
-VER = (None, 'c643827', 'b0e3c4c')
+VER = (None, 'c643827', '4c8c36f')
 def get_session(ver_i, proxies):
     s = requests.Session()
     s.proxies = proxies
@@ -189,108 +189,155 @@ def get_session(ver_i, proxies):
             'User-Agent': UA,
             'Accept': 'application/json, text/javascript, */*, q=0.01',
             'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate, br',
             'Referer': 'https://www.pinterest.com/',
             'X-Requested-With': 'XMLHttpRequest',
             'X-APP-VERSION': VER[ver_i],
             'X-Pinterest-AppState': 'active',
-            'X-Requested-With': 'XMLHttpRequest',
+            'X-Pinterest-Source-Url': '/ackohole/a/sec2/', #[todo:0]
+            'X-Pinterest-PWS-Handler': 'www/[username]/[slug]/[section_slug].js',
             'DNT': '1',
             'Connection': 'keep-alive',
-            'Pragma': 'no-cache',
-            'Cache-Control': 'no-cache',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-origin',
             'TE': 'Trailers'
         }
 
     return s
 
 
-'''
-def get_user_boards(username, proxies):
-    s = get_session(0, proxies)
-    r = s.get('https://www.pinterest.com/{}/'.format(username), timeout=15)
-    root = html.fromstring(r.content)
-    tag = root.xpath("//script[@id='initial-state']")[0]
-    initial_data = json.loads(tag.text)
-    
-    boards = [i for i in initial_data['resourceResponses'] if i['name'] == 'UserProfileBoardResource']
-
-    if boards:
-        boards = boards[0]['response']['data'][0]
-
-    return boards
-'''
+def dj(j, tag=None):
+    if tag:
+        print('### [' + tag + '] ###')
+    print(json.dumps(j, sort_keys=True, indent=4))
 
 
-def get_pin_info(pin_id, arg_timestamp_log, arg_force_update, arg_dir, arg_cut, arg_el, fs_f_max, proxies):
-    s = get_session(0, proxies)
+def get_pin_info(pin_id, arg_timestamp_log, arg_force_update, arg_dir, arg_cut, arg_el, fs_f_max, IMG_SESSION, V_SESSION, PIN_SESSION, get_data_only):
 
+    attempt = 1
+    scripts = []
     while 1:
-        r = s.get('https://www.pinterest.com/pin/{}/'.format(pin_id), timeout=15)
-        root = html.fromstring(r.content)
-        #print(root)
+        if attempt > 3:
+            if not get_data_only: # get data error show later
+                cprint(''.join([ HIGHER_RED, '%s %s%s' % ('\n[' + x_tag 
+                    + '] Get this pin id failed :', pin_id, '\n') ]), attrs=BOLD_ONLY, end='' )
+            break
+        #print('https://www.pinterest.com/pin/{}/'.format(pin_id))
         try:
-            tag = root.xpath("//script[@id='initial-state']")[0]
+            r = PIN_SESSION.get('https://www.pinterest.com/pin/{}/'.format(pin_id), timeout=300)
+        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
+            print('[E] Failed. Retry after 5 seconds...')
+            time.sleep(5)
+            continue
+        root = html.fromstring(r.content)
+        #print(r.content)
+        try:
+            #tag = root.xpath("//script[@id='initial-state']")[0]
+            scripts = root.xpath('//script/text()')
             break
         except IndexError: #list index out of range
             print('[E] Failed. Retry after 5 seconds...')
             time.sleep(5)
-    initial_data = json.loads(tag.text)
-    #print(initial_data)
-    images = initial_data['resourceResponses'][0]['response']['data']
-    #print(images.keys())
+            attempt+=1
+
+    #board_d = {}
+    image = None
+    for script in scripts:
+        try:
+            data = json.loads(script)
+            if 'props' in data:
+                pins = data['props']['initialReduxState']['pins']
+                image = pins[list(pins.keys())[0]]
+                #dj(image)
+                break
+        except json.decoder.JSONDecodeError:
+            pass
+
+    if get_data_only:
+        return image
     try:
         # This is the User Responsibilities to ensure -d is not too long
         # Program can't automate for you, imagine -d already 2045th bytes in full path
         #, is unwise if program make dir in parent directory.
         create_dir(arg_dir)
-        write_log( arg_timestamp_log, arg_dir, [images], images['id'], arg_cut )
-        IMG_SESSION = get_session(3, proxies)
-        V_SESSION = get_session(4, proxies)
-        print('[i] Download Pin id: ' + str(images['id']) + ' in directory: ' + arg_dir)
+        write_log( arg_timestamp_log, arg_dir, [image], image['id'], arg_cut )
+        print('[i] Download Pin id: ' + str(image['id']) + ' in directory: ' + arg_dir)
         printProgressBar(0, 1, prefix='[...] Downloading:', suffix='Complete', length=50)
-        download_img(images, arg_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_cut, arg_el, fs_f_max)
+        download_img(image, arg_dir, arg_force_update, IMG_SESSION, V_SESSION, PIN_SESSION, arg_cut, arg_el, fs_f_max)
         printProgressBar(1, 1, prefix='[' + done_tag + '] Downloaded:', suffix='Complete   ', length=50)
     except KeyError:
         return quit(traceback.format_exc())
     print()
 
 
-def get_board_info(board_or_sec_path, exclude_section, section, proxies):
+def get_board_info(board_or_sec_path, exclude_section, section, board_path, proxies):
     s = get_session(0, proxies)
 
-    r = s.get('https://www.pinterest.com/{}/'.format(board_or_sec_path), timeout=15)
+    #print('https://www.pinterest.com/{}/'.format(board_or_sec_path))
+    r = s.get('https://www.pinterest.com/{}/'.format(board_or_sec_path), timeout=30)
     root = html.fromstring(r.content)
-    tag = root.xpath("//script[@id='initial-state']")[0]
-    initial_data = json.loads(tag.text)
+    #print(str(r.content))
+    #tag = root.xpath("//script[@id='initial-state']")[0]
+    scripts = root.xpath('//script/text()')
+    board_d = {}
+    for script in scripts:
+        try:
+            data = json.loads(script)
+            if 'props' in data:
+                board_d = data['props']['initialReduxState']['boards']
+                board_sec_d = data['props']['initialReduxState']['boardsections']
+                break
+        except json.decoder.JSONDecodeError:
+            pass
+
+    #dj(data, 'board main')
+    boards = {}
+    sections = []
+
+    board_dk = list(board_d.keys())
     if section:
-        #print(len(initial_data['resourceResponses']))
-        #3 index: BoardResource(0) -> BoardFeedResource -> BoardSectionsResource (2)
-        boards = {}
-        # 3 keys: 'rebuildStoreOnClient', 'resourceResponses', 'routeData'
-        #print(initial_data['resourceResponses']) 
-        for i in initial_data['resourceResponses']:
-            if i['name'] == 'BoardFeedResource':
-                for boa in i['response']['data']:
-                    boards['board'] = boa['board']
-                    break # only nid once bcoz the rest is repeat
-            elif i['name'] == 'BoardSectionsResource':
-                for sec in i['response']['data']:
-                    if sec['slug'] == section:
-                        #print(sec)
-                        boards['section'] = sec
+        path_to_compare = board_path
+    else:
+        path_to_compare = board_or_sec_path
+    for k in board_dk:
+        if board_d[k].get('url', '').strip('/') == path_to_compare:
+            b_dk = board_d[k]
+            board_d_map = {}
+            board_d_map['url'] = b_dk.get('url', '')
+            board_d_map['id'] = b_dk.get('id', '')
+            board_d_map['name'] = b_dk.get('name', '')
+            board_d_map['section_count'] = b_dk.get('section_count', '')
+            boards['board'] = board_d_map;
+            break
+        
+    if not exclude_section:
+        board_sec_dk = list(board_sec_d.keys())
+        for k in board_sec_dk:
+            b_dk = board_sec_d[k]
+            sec_d_map = {}
+
+            sec_slug = b_dk.get('slug', '')
+            if section and (sec_slug != section):
+                    continue
+
+            sec_d_map['slug'] = sec_slug
+            sec_d_map['id'] = b_dk.get('id', '')
+            sec_d_map['title'] = b_dk.get('title', '')
+
+            if section:
+                boards['section'] = sec_d_map
+            else:
+                sections.append(sec_d_map)
+            
+    #dj(board_d, 'board raw')
+    #dj(boards, 'boarded')
+    #dj(board_sec_d, 'sect raw')
+    #dj(sections, 'sectioned')
+
+    if section:
         return boards
     else:
-        boards = {}
-        sections = []
-        for i in initial_data['resourceResponses']:
-            if i['name'] == 'BoardFeedResource':
-                for boa in i['response']['data']:
-                    boards['board'] = boa['board']
-                    break
-
-            elif (i['name'] == 'BoardSectionsResource') and (not exclude_section):
-                for sec in i['response']['data']:
-                    sections.append(sec)
         return boards, sections
 
 
@@ -343,7 +390,7 @@ def fetch_boards(uname, proxies):
 
         #print('[boards] called headers: ' + repr(s.headers))
 
-        r = s.get('https://www.pinterest.com/resource/BoardsResource/get/', params=post_d, timeout=15)
+        r = s.get('https://www.pinterest.com/resource/BoardsResource/get/', params=post_d, timeout=30)
 
         #print('[Boards url]: ' + r.url)
         data = r.json()
@@ -369,6 +416,7 @@ def sanitize(path):
     # Ensure .replace('..', '') is last replacement before .strip() AND not replace back to dot '.'
     # https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
     
+    # [todo:0] Handle case sensitive and reserved file names in Windows like Chrome "Save page as" do
     # For portable to move filename between linux <-> win, should use IS_WIN only (but still can't care if case sensitive filename move to case in-sensitive filesystem). 
     # IS_WIN:
     path = path.replace('<', '').replace('>', '').replace('"', '\'').replace('?', '').replace('*', '').replace('/', '_').replace('\\', '_').replace('|', '_').replace(':', '_').replace('.', '_').strip()
@@ -509,7 +557,7 @@ def get_output_file_path(url, arg_cut, fs_f_max, image_id, human_fname, save_dir
     return file_path
 
 
-def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_cut, arg_el, fs_f_max):
+def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, PIN_SESSION, arg_cut, arg_el, fs_f_max):
 
     try:
         # Using threading.Lock() if necessary
@@ -573,7 +621,8 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_
                                 #raise(requests.exceptions.ConnectionError)
                     except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
                         try:
-                            r = IMG_SESSION.get(url, stream=True, timeout=30)
+                            time.sleep(5)
+                            r = IMG_SESSION.get(url, stream=True, timeout=300) # Need higher timeout
                             with open(file_path, 'wb') as f:
                                 for chunk in r:
                                     f.write(chunk)
@@ -657,7 +706,16 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_
             pass #print('No image found in this image index. This is normal (may be 1))')
 
         if ('videos' in image) and image['videos']: # image['videos'] may None
+            #dj(image, 'before override') # override m3u8-only data with pin details page mp4
+            v_pin_id = image['id']
+            image = get_pin_info(v_pin_id, None, None, None, None, None, None, IMG_SESSION, V_SESSION, PIN_SESSION, True)
+            #dj(image, 'after override')
+            if not image:
+                cprint(''.join([ HIGHER_RED, '%s %s%s' % ('\n[' + x_tag 
+                    + '] Get this video pin id failed :', v_pin_id, '\n') ]), attrs=BOLD_ONLY, end='' )
+                return
             v_d = image['videos']['video_list']
+            #dj(v_d)
             vDimens = []
             vDimensD = {}
             for v_format, v_v in v_d.items():
@@ -699,8 +757,9 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, arg_
                                     #raise(requests.exceptions.ConnectionError)
                         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError, requests.exceptions.ChunkedEncodingError) as e:
                             # requests.exceptions.ChunkedEncodingError: ("Connection broken: ConnectionResetError(104, 'Connection reset by peer')", ConnectionResetError(104, 'Connection reset by peer'))
+                            time.sleep(5)
                             try:
-                                r = V_SESSION.get(vurl, stream=True, timeout=(30, None))
+                                r = V_SESSION.get(vurl, stream=True, timeout=(120, None))
                                 with open(file_path, 'wb') as f:
                                     for chunk in r:
                                         f.write(chunk)
@@ -811,7 +870,7 @@ def write_log(arg_timestamp_log, save_dir, images, pin, arg_cut):
 
 
 def fetch_imgs(board, uname, board_name, section, arg_timestamp, arg_timestamp_log, arg_force_update
-    , arg_dir, arg_thread_max, IMGS_SESSION, IMG_SESSION, V_SESSION, arg_cut, arg_el, fs_f_max):
+    , arg_dir, arg_thread_max, IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, arg_cut, arg_el, fs_f_max):
     
     bookmark = None
     images = []
@@ -821,6 +880,7 @@ def fetch_imgs(board, uname, board_name, section, arg_timestamp, arg_timestamp_l
     else:
         timestamp_d = ''
     try:
+        #dj(board)
         if 'owner' in board:
             #uname = board['owner']['username']
             #save_dir = os.path.join(arg_dir, uname, board['name'] + timestamp_d)
@@ -837,8 +897,11 @@ def fetch_imgs(board, uname, board_name, section, arg_timestamp, arg_timestamp_l
             board_name_folder = board['board']['name']
             #print(board_name_folder)
             if section:
+                try:
+                    section_id = board['section']['id']
+                except (KeyError, TypeError):
+                    return quit('{}'.format('\n[' + x_tag + '] Section may not exist.\n') )
                 section_folder = board['section']['title']
-                section_id = board['section']['id']
         else:
             return quit('{}'.format('\n[' + x_tag + '] No item found.\n\
 Please ensure your username/boardname or link has media item.\n') )
@@ -929,20 +992,28 @@ Please ensure your username/boardname or link has media item.\n') )
 
         if section:
             r = IMGS_SESSION.get('https://www.pinterest.com/resource/BoardSectionPinsResource/get/'
-                , params=post_d, timeout=15)
+                , params=post_d, timeout=30)
         else:
             r = IMGS_SESSION.get('https://www.pinterest.com/resource/BoardFeedResource/get/'
-                , params=post_d, timeout=15)
+                , params=post_d, timeout=30)
 
         #print('Imgs url ok: ' + str(r.ok))
         #print('Imgs url: ' + r.url)
         data = r.json()
+        #dj(data, 'imgs loop raw')
         # Useful for debug with print only specific id log
         #if 'e07614d79a22d22c83d51649e2e01e43' in repr(data):
         #print('res data: ' + repr(data))
         images.extend(data['resource_response']['data'])
-
+        #dj(data['resource_response']['data'], 'img raw')
+        #print(data.keys())
+        #dj(data['client_context'], 'img raw')
+        #dj(data['resource'], 'img raw')
+        #dj(data['request_identifier'], 'img raw') # "<ID>" only
+        #dj(data['resource_response'], 'img raw')
         bookmark = data['resource']['options']['bookmarks'][0]
+
+        #break # hole: testing purpose # Remember remove this after test lolr
 
     create_dir(save_dir)
     got_img = write_log(arg_timestamp_log, save_dir, images, None, arg_cut)
@@ -961,7 +1032,7 @@ Please ensure your username/boardname or link has media item.\n') )
 
         # Create threads
         futures = {executor.submit(download_img, image, save_dir, arg_force_update
-                , IMG_SESSION, V_SESSION, arg_cut, arg_el, fs_f_max) for image in images}
+                , IMG_SESSION, V_SESSION, PIN_SESSION, arg_cut, arg_el, fs_f_max) for image in images}
 
         # as_completed() gives you the threads once finished
         for index, f in enumerate(as_completed(futures)):
@@ -1084,22 +1155,27 @@ def main():
             print('[i] Job is download video/image of single pin page.')
             pin_id = slash_path[-1] #bk first before reset 
             slash_path = [] # reset for later in case exception
-            get_pin_info(pin_id.strip(), args.log_timestamp, args.force, args.dir, args.cut, arg_el, fs_f_max, proxies)
+            PIN_SESSION = get_session(0, proxies)
+            IMG_SESSION = get_session(3, proxies)
+            V_SESSION = get_session(4, proxies)
+            get_pin_info(pin_id.strip(), args.log_timestamp, args.force, args.dir, args.cut, arg_el, fs_f_max, IMG_SESSION, V_SESSION, PIN_SESSION, False)
 
     if len(slash_path) == 3:
         sec_path = '/'.join(slash_path)
+        board_path = '/'.join(slash_path[:-1])
         print('[i] Job is download single section by username/boardname/section: {}'.format(sec_path))
         # Will err if try to create section by naming 'more_ideas'
         if ( slash_path[-3] in ('search', 'categories', 'topics') ) or ( slash_path[-1] in ['more_ideas'] ):
             return quit('{}'.format('\n[' + x_tag + '] Search, Categories, Topics, more_ideas are not supported.\n') )
-        board = get_board_info(sec_path, False, slash_path[-1], proxies) # need_get_section's True/False not used
+        board = get_board_info(sec_path, False, slash_path[-1], board_path, proxies) # need_get_section's True/False not used
         try: 
+            PIN_SESSION = get_session(0, proxies)
             IMGS_SESSION = get_session(2, proxies)
             IMG_SESSION = get_session(3, proxies)
             V_SESSION = get_session(4, proxies)
             fetch_imgs( board, slash_path[-3], slash_path[-2], slash_path[-1], args.board_timestamp
                 , args.log_timestamp, args.force, args.dir, args.thread_max
-                , IMGS_SESSION, IMG_SESSION, V_SESSION, args.cut, arg_el, fs_f_max )
+                , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, args.cut, arg_el, fs_f_max )
         except KeyError:
             return quit(traceback.format_exc())
 
@@ -1108,22 +1184,23 @@ def main():
         print('[i] Job is download single board by username/boardname: {}'.format(board_path))
         if slash_path[-2] in ('search', 'categories', 'topics'):
             return quit('{}'.format('\n[' + x_tag + '] Search, Categories and Topics not supported.\n') )
-        board, sections = get_board_info(board_path, args.exclude_section, None, proxies)
+        board, sections = get_board_info(board_path, args.exclude_section, None, None, proxies)
         try: 
+            PIN_SESSION = get_session(0, proxies)
             IMGS_SESSION = get_session(2, proxies)
             IMG_SESSION = get_session(3, proxies)
             V_SESSION = get_session(4, proxies)
             fetch_imgs( board, slash_path[-2], slash_path[-1], None, args.board_timestamp, args.log_timestamp, args.force
-            , args.dir, args.thread_max, IMGS_SESSION, IMG_SESSION, V_SESSION, args.cut, arg_el, fs_f_max )
+            , args.dir, args.thread_max, IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, args.cut, arg_el, fs_f_max )
             if sections:
                 sec_c = len(sections)
                 print('[i] Trying to get ' + str(sec_c) + ' section{}'.format('s' if sec_c > 1 else ''))
                 for sec in sections:
                     sec_path = board_path + '/' + sec['slug']
-                    board = get_board_info(sec_path, False, sec['slug'], proxies) # False not using bcoz sections not [] already
+                    board = get_board_info(sec_path, False, sec['slug'], board_path, proxies) # False not using bcoz sections not [] already
                     fetch_imgs( board, slash_path[-2], slash_path[-1], sec['slug'], args.board_timestamp
                         , args.log_timestamp, args.force, args.dir, args.thread_max
-                        , IMGS_SESSION, IMG_SESSION, V_SESSION, args.cut, arg_el, fs_f_max )
+                        , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, args.cut, arg_el, fs_f_max )
 
         except KeyError:
             return quit(traceback.format_exc())
@@ -1132,9 +1209,9 @@ def main():
         print('[i] Job is download all boards by username: {}'.format(slash_path[-1]))
         if slash_path[-1] in ('search', 'categories', 'topics'):
             return quit('{}'.format('\n[' + x_tag + '] Search, Categories and Topics not supported.\n') )
-        #boards = get_user_boards( slash_path[-1] )
         try: 
             boards = fetch_boards( slash_path[-1], proxies )
+            PIN_SESSION = get_session(0, proxies)
             IMGS_SESSION = get_session(2, proxies)
             IMG_SESSION = get_session(3, proxies)
             V_SESSION = get_session(4, proxies)
@@ -1145,9 +1222,10 @@ def main():
                     continue
 
                 board_name = board['name']
-                board['owner']['id'] = board['id']
+                board['owner']['id'] = board['id'] # hole: [todo:0] remove this
                 fetch_imgs( board, slash_path[-1], board_name, None, args.board_timestamp, args.log_timestamp
-                    , args.force, args.dir, args.thread_max, IMGS_SESSION, IMG_SESSION, V_SESSION
+                    , args.force, args.dir, args.thread_max
+                    , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION
                     , args.cut, arg_el, fs_f_max )
                 if (not args.exclude_section) and (board['section_count'] > 0):
                     sec_c = board['section_count']
@@ -1155,14 +1233,14 @@ def main():
                     # E.g. /example/commodore-computers/ need trim to example/commodore-computers
                     board_path = board['url'].strip('/')
                     # ags.es placeholder below always False bcoz above already check (not args.exclude_section) 
-                    board, sections = get_board_info(board_path, False, None, proxies)
+                    board, sections = get_board_info(board_path, False, None, None, proxies)
                     for sec in sections:
                         sec_path = board_path + '/' + sec['slug']
-                        board = get_board_info(sec_path, False, sec['slug'], proxies) 
+                        board = get_board_info(sec_path, False, sec['slug'], board_path, proxies) 
                         sec_uname, sec_bname = board_path.split('/')
                         fetch_imgs( board, sec_uname, sec_bname, sec['slug'], args.board_timestamp
                             , args.log_timestamp, args.force, args.dir, args.thread_max
-                            , IMGS_SESSION, IMG_SESSION, V_SESSION, args.cut, arg_el, fs_f_max )
+                            , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, args.cut, arg_el, fs_f_max )
 
         except KeyError:
             return quit(traceback.format_exc())
