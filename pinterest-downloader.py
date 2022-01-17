@@ -1024,7 +1024,8 @@ Please ensure your username/boardname or link has media item.\n') )
     if got_img:
         # From what I observed, always got extra index is not media, so better -1
         # And no point to loop above and detect early, overkill
-        print(' [' + plus_tag + '] Found estimated {} images'.format(len(images) - 1))
+        img_total = len(images) - 1
+        print( (' [' + plus_tag + '] Found estimated {} image' + ('s' if img_total > 1 else '') ) .format(img_total))
     else: # empty section
         print('\n[i] No item found.')
         return
