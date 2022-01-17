@@ -709,7 +709,7 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, PIN_
             #dj(image, 'before override') # override m3u8-only data with pin details page mp4
             v_pin_id = image['id']
             image = get_pin_info(v_pin_id, None, None, None, None, None, None, IMG_SESSION, V_SESSION, PIN_SESSION, True)
-            #dj(image, 'after override')
+            #dj(image, 'after override') # [todo:0] Rich Metadata for video write to log (only pin can get)
             if not image:
                 cprint(''.join([ HIGHER_RED, '%s %s%s' % ('\n[' + x_tag 
                     + '] Get this video pin id failed :', v_pin_id, '\n') ]), attrs=BOLD_ONLY, end='' )
