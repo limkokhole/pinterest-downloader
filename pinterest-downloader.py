@@ -285,7 +285,9 @@ def get_board_info(board_or_sec_path, exclude_section, section, board_path, prox
         try:
             data = json.loads(script)
             if 'props' in data:
+                #dj(data)
                 board_d = data['props']['initialReduxState']['boards']
+                #dj(board_d)
                 board_sec_d = data['props']['initialReduxState']['boardsections']
                 break
         except json.decoder.JSONDecodeError:
@@ -305,6 +307,7 @@ def get_board_info(board_or_sec_path, exclude_section, section, board_path, prox
             b_dk = board_d[k]
             board_d_map = {}
             board_d_map['url'] = b_dk.get('url', '')
+            #dj(b_dk, 'board d')
             board_d_map['id'] = b_dk.get('id', '')
             board_d_map['name'] = b_dk.get('name', '')
             board_d_map['section_count'] = b_dk.get('section_count', '')
@@ -880,7 +883,7 @@ def fetch_imgs(board, uname, board_name, section, arg_timestamp, arg_timestamp_l
     else:
         timestamp_d = ''
     try:
-        #dj(board)
+        #dj(board, 'fetch imgs')
         if 'owner' in board:
             #uname = board['owner']['username']
             #save_dir = os.path.join(arg_dir, uname, board['name'] + timestamp_d)
@@ -1092,15 +1095,21 @@ def main():
         return quit('Path cannot be empty. ')
 
     url_path = args.path.strip().split('?')[0].split('#')[0]
+    url_path_for_board = url_path
     # Convert % format of unicode url when copied from Firefox 
     # This is important especially section need compare the section name later
     url_path = urllib.parse.unquote_plus(url_path).rstrip('/')
+    # But board can't unquote, this is just temporary quick fix
+    url_path_for_board = url_path_for_board.rstrip('/')
     if '://' in url_path:
         url_path = '/'.join( url_path.split('/')[3:] )
+        url_path_for_board = '/'.join( url_path_for_board.split('/')[3:] )
         if not url_path:
             return quit('{} {} {}'.format('\n[' + x_tag + '] Neither username/boardname nor valid link: ', args.path, '\n') )
     url_path = url_path.lstrip('/')
+    url_path_for_board = url_path_for_board.lstrip('/')
     slash_path = url_path.split('/')
+    slash_path_for_board = url_path_for_board.split('/')
     if '.' in slash_path[0]:
         # Impossible dot in username, so it means host without https:// and nid remove
         slash_path = slash_path[1:]
@@ -1180,6 +1189,7 @@ def main():
             return quit(traceback.format_exc())
 
     elif len(slash_path) == 2:
+        slash_path = slash_path_for_board
         board_path = '/'.join(slash_path)
         print('[i] Job is download single board by username/boardname: {}'.format(board_path))
         if slash_path[-2] in ('search', 'categories', 'topics'):
