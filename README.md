@@ -16,6 +16,10 @@ Download all images/videos from Pinterest user/board/section.
 - [x] Unique board/log name with timestamp options.
 - [x] Proxies options.
 
+### Requirements:
+
+    $ python3 -m pip install -r requirements.txt 
+
 ### Usage:
 
     $ python3 pinterest-downloader.py --help
