@@ -847,6 +847,7 @@ def write_log(arg_timestamp_log, save_dir, images, pin, arg_cut, break_from_late
 
     if images:
         index_last = 0
+        existing_indexes = []
         if break_from_latest_pin and not arg_timestamp_log:
             try:
                 with open(log_path) as f:
@@ -854,6 +855,8 @@ def write_log(arg_timestamp_log, save_dir, images, pin, arg_cut, break_from_late
                     index_last_tmp = index_line[-1].split('[ ')[1].split(' ]')[0]
                     if index_last_tmp.isdigit():
                         index_last = int(index_last_tmp)
+                    for l in index_line:
+                        existing_indexes.append(l.split('[ ')[1].split(' ] Pin Id: ')[1].strip())
             except (FileNotFoundError, OSError, KeyError, TypeError):
                 cprint(''.join([ HIGHER_YELLOW, '%s' % ('\nWrite log increment from last log stored index failed with -u. Fallback to -lt\n\n') ]), attrs=BOLD_ONLY, end='' )  
                 log_timestamp = 'log-pinterest-downloader_' + datetime.now().strftime('%Y-%m-%d %H.%M.%S')
@@ -864,12 +867,16 @@ def write_log(arg_timestamp_log, save_dir, images, pin, arg_cut, break_from_late
             with open(log_path, 'w') as f: # Reset before append
                 f.write('Pinterest Downloader: Version ' + str(__version__)  + '\n\n') # Easy to recognize if future want to change something
         skipped_total = 0
+        #print(existing_indexes)
         for log_i, image in enumerate(images):
             if 'id' not in image:
                 skipped_total+=1
                 continue
             got_img = True
             image_id = image['id']
+            if image_id in existing_indexes: 
+                # Still got_img True to try re-download flow since only want to ensure log don't want duplicated if reorder
+                continue
             #print('got img: ' + image_id) # Possible got id but empty section
             #, so still failed to use got_img to skip showing estimated 1 image if actually empty
             story = ''
