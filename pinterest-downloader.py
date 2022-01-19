@@ -99,6 +99,7 @@ import json
 import lxml.html as html
 
 import urllib
+from urllib.parse import unquote
 import requests
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -272,7 +273,7 @@ def get_pin_info(pin_id, arg_timestamp_log, arg_force_update, arg_dir, arg_cut, 
     print()
 
 
-def get_board_info(board_or_sec_path, exclude_section, section, board_path, proxies):
+def get_board_info(board_or_sec_path, exclude_section, section, board_path, proxies, retry=False):
     s = get_session(0, proxies)
 
     #print('https://www.pinterest.com/{}/'.format(board_or_sec_path))
@@ -304,7 +305,7 @@ def get_board_info(board_or_sec_path, exclude_section, section, board_path, prox
     else:
         path_to_compare = board_or_sec_path
     for k in board_dk:
-        if board_d[k].get('url', '').strip('/') == path_to_compare:
+        if unquote(board_d[k].get('url', '').strip('/')) == path_to_compare:
             b_dk = board_d[k]
             board_d_map = {}
             board_d_map['url'] = b_dk.get('url', '')
@@ -321,9 +322,9 @@ def get_board_info(board_or_sec_path, exclude_section, section, board_path, prox
             b_dk = board_sec_d[k]
             sec_d_map = {}
 
-            sec_slug = b_dk.get('slug', '')
+            sec_slug = unquote(b_dk.get('slug', ''))
             if section and (sec_slug != section):
-                    continue
+                continue
 
             sec_d_map['slug'] = sec_slug
             sec_d_map['id'] = b_dk.get('id', '')
@@ -1238,22 +1239,15 @@ def main():
     arg_log_timestamp = args.log_timestamp
 
     url_path = args.path.strip().split('?')[0].split('#')[0]
-    url_path_for_board = url_path
     # Convert % format of unicode url when copied from Firefox 
     # This is important especially section need compare the section name later
-    #url_path = urllib.parse.unquote_plus(url_path).rstrip('/')
-    url_path = url_path.rstrip('/') # Now this also
-    # But board can't unquote, this is just temporary quick fix
-    url_path_for_board = url_path_for_board.rstrip('/')
+    url_path = unquote(url_path).rstrip('/')
     if '://' in url_path:
         url_path = '/'.join( url_path.split('/')[3:] )
-        url_path_for_board = '/'.join( url_path_for_board.split('/')[3:] )
         if not url_path:
             return quit('{} {} {}'.format('\n[' + x_tag + '] Neither username/boardname nor valid link: ', args.path, '\n') )
     url_path = url_path.lstrip('/')
-    url_path_for_board = url_path_for_board.lstrip('/')
     slash_path = url_path.split('/')
-    slash_path_for_board = url_path_for_board.split('/')
     if '.' in slash_path[0]:
         # Impossible dot in username, so it means host without https:// and nid remove
         slash_path = slash_path[1:]
@@ -1335,7 +1329,6 @@ def main():
             return quit(traceback.format_exc())
 
     elif len(slash_path) == 2:
-        slash_path = slash_path_for_board
         board_path = '/'.join(slash_path)
         print('[i] Job is download single board by username/boardname: {}'.format(board_path))
         if slash_path[-2] in ('search', 'categories', 'topics'):
