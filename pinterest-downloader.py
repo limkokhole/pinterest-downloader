@@ -1096,7 +1096,7 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
         #    print('before img: ' + repr(img['id']))
 
         reach_lastest_pin = False
-        if not arg_rescrape:
+        if not arg_rescrape and sorted_api:
             img_prev = 0
             on_hold_break = False
             for img_round_i, img in enumerate(imgs_round):
