@@ -291,6 +291,7 @@ def get_board_info(board_or_sec_path, exclude_section, section, board_path, prox
                 board_d = data['props']['initialReduxState']['boards']
                 #dj(board_d)
                 board_sec_d = data['props']['initialReduxState']['boardsections']
+                #dj(board_sec_d)
                 break
         except json.decoder.JSONDecodeError:
             pass
@@ -309,6 +310,8 @@ def get_board_info(board_or_sec_path, exclude_section, section, board_path, prox
             b_dk = board_d[k]
             board_d_map = {}
             board_d_map['url'] = b_dk.get('url', '')
+            board_d_map['modified_at'] = b_dk.get('board_order_modified_at', '')
+            #print('Board modified: ' + repr(board_d_map['modified_at']))
             #dj(b_dk, 'board d') # [todo:0] board_order_modified_at help decide re-scrape?
             board_d_map['id'] = b_dk.get('id', '')
             board_d_map['name'] = b_dk.get('name', '')
@@ -325,6 +328,9 @@ def get_board_info(board_or_sec_path, exclude_section, section, board_path, prox
             sec_slug = unquote(b_dk.get('slug', ''))
             if section and (sec_slug != section):
                 continue
+
+            #sec_d_map['modified_at'] = b_dk.get('board_order_modified_at', '')
+            #print('Section modified: ' + repr(sec_d_map['modified_at']))
 
             sec_d_map['slug'] = sec_slug
             sec_d_map['id'] = b_dk.get('id', '')
@@ -1085,7 +1091,7 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
         #print('Imgs url ok: ' + str(r.ok))
         #print('Imgs url: ' + r.url)
         data = r.json()
-        #dj(data, 'imgs loop raw')
+        dj(data, 'imgs loop raw')
         # Useful for debug with print only specific id log
         #if 'e07614d79a22d22c83d51649e2e01e43' in repr(data):
         #print('res data: ' + repr(data))
@@ -1113,7 +1119,7 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
                             break
                         if on_hold_break: # Need check above 2 imgs first, test with delete 1 image in unsorted list
                             break
-                        if latest_pin == img['id']:
+                        if latest_pin == img_curr:
                             #print('\nAlready scroll to latest downloaded pin. Break.')
                             #print('bookmark: ' + repr(bookmark))
                             imgs_round = imgs_round[:img_round_i]
