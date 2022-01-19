@@ -1403,7 +1403,7 @@ def main():
                 #dj(board)
                 # E.g. /example/commodore-computers/ need trim to example/commodore-computers
                 board_path = board['url'].strip('/')
-                # fetch_imgs() hould use url style `A-B`` instead of Title `A B``(board['name'])
+                # fetch_imgs() should use url style `A-B`` instead of Title `A B``(board['name'])
                 #print(board_path)
                 if '/' in board_path:
                     board_slug = board_path.split('/')[1]
