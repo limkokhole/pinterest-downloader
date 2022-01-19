@@ -3,18 +3,19 @@ Download all images/videos from Pinterest user/board/section.
 
 ### Some features:
 
-- [x] Accept input as /username/, /username/boardname/, /username/boardname/section, pin/PinID
-- [x] Accept input as link of /username/, /username/boardname/, /username/boardname/section, and /pin/
-- [x] Able download sections of boards of username.
+- [x] Accept input of /username/, /username/boardname/, /username/boardname/section, pin/PinID 
+- [x] Accept input of URL link. 
+- [x] Able download sections of boards of username. 
 - [x] High resolution. 
-- [x] Error tolerance. Try second resolution if first resolution error.
-- [x] Able download both image and video.
-- [x] Multi-threads when download images.
+- [x] Error tolerance. Try second resolution if first resolution error. 
+- [x] Able download both image and video. 
+- [x] Multi-threads when download images. 
 - [x] Media Filename naming in PinID_Title_Description_[Date].Ext meaningful form. With PinID, you can visit https://www.pinterest.com/pin/[PinID] in web browser and get more details in log file (PinID without details will not log). 
-- [x] Media Filename truncate to ... fit maximum filename length automatically. -c to cut if you prefer.
-- [x] Log PinID, Title, Description, Link, Metadata, [Date] to log-pinterest-downloader.log file since media filename can't fit.
-- [x] Unique board/log name with timestamp options.
-- [x] Proxies options.
+- [x] Media Filename truncate to ... fit maximum filename length automatically. -c to cut if you prefer. 
+- [x] Log PinID, Title, Description, Link, Metadata, [Date] to log-pinterest-downloader.log file since media filename can't fit. 
+- [x] Unique board/log name with timestamp options. 
+- [x] Proxies options. 
+- [x] Speed up exisitng folder update without re-fetch all pages. 
 
 ### Requirements:
 
