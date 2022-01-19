@@ -227,7 +227,7 @@ def get_pin_info(pin_id, arg_timestamp_log, arg_force_update, arg_dir, arg_cut, 
             break
         #print('https://www.pinterest.com/pin/{}/'.format(pin_id))
         try:
-            r = PIN_SESSION.get('https://www.pinterest.com/pin/{}/'.format(pin_id), timeout=300)
+            r = PIN_SESSION.get('https://www.pinterest.com/pin/{}/'.format(pin_id), timeout=120)
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
             print('[E] Failed. Retry after 5 seconds...')
             time.sleep(5)
@@ -633,7 +633,7 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, PIN_
                         try:
                             time.sleep(5)
                             IMG_SESSION_RETY = get_session(3, proxies)
-                            r = IMG_SESSION_RETY.get(url, stream=True, timeout=300) # Need higher timeout
+                            r = IMG_SESSION_RETY.get(url, stream=True, timeout=120) # Need higher timeout
                             with open(file_path, 'wb') as f:
                                 for chunk in r:
                                     f.write(chunk)
