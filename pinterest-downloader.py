@@ -1035,7 +1035,9 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
             'field_set_key': 'react_grid_pin',
             'filter_section_pins': 'true', 
             #'order': 'DESCENDING',#'oldest',#'default',
-            'order': 'default',
+            #'order': 'default',
+            #'sort':'last_pinned_to',
+            #'sortDirection': 'newest',
             #'most_recent_board_sort_order': 'first_pinned_to',
             'layout':'default',
             'page_size': 25,#10,#25,
@@ -1219,7 +1221,7 @@ def main():
     arg_parser.add_argument('-f', '--force', action='store_true', help='Force re-download even if image already exist. Normally used with -rs')
     # Need reverse images order(previously is latest to oldest) to avoid abort this need re-download in-between missing images.
     arg_parser.add_argument('-rs', '--re-scrape', dest='rescrape', action='store_true', help='Default is only fetch new images since latest Pin ID image to speed up update process.\n\
-        This option disable this behavior and re-scrape all, use it when you feel missing images somewhere.') 
+        This option disable this behavior and re-scrape all, use it when you feel missing images somewhere(caused by reorder).') 
     arg_parser.add_argument('-es', '--exclude-section', dest='exclude_section', action='store_true', help='Exclude sections if download from username or board.')
     arg_parser.add_argument('-ps', '--https-proxy', help='Set proxy for https.')
     arg_parser.add_argument('-p', '--http-proxy', help='Set proxy for http.')

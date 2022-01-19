@@ -61,7 +61,7 @@ Download all images/videos from Pinterest user/board/section.
       -rs, --re-scrape      Default is only fetch new images since latest Pin ID
                             image to speed up update process. This option disable
                             this behavior and re-scrape all, use it when you feel
-                            missing images somewhere.
+                            missing images somewhere(caused by reorder).
       -es, --exclude-section
                                 Exclude sections if download from username or board.
       -ps HTTPS_PROXY, --https-proxy HTTPS_PROXY
