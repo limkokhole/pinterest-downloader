@@ -93,7 +93,7 @@ Download all images/videos from Pinterest user/board/section.
 ### Example Output:
     xb@dnxb:~/Downloads/pinterest/pinterest-downloader$ python3 pinterest-downloader.py -d comp https://www.pinterest.com/antonellomiglio/computer/ 
     [...] Getting all images in this board: computer ... [ 74 / ? ]
-    [W] This images list is not sorted correctly, fallback to -rs for this list.
+    [W] This images list is not sorted(Due to user reorder or alphanumeric pin ID), fallback to -rs for this list.
 
     [...] Getting all images in this board: computer ... [ 173 / ? ] [➕] Found 195 image/videos
     Download into directory:  comp/antonellomiglio/Computer

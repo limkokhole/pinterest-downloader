@@ -1096,7 +1096,7 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
                     if img['id'].isdigit():
                         img_curr = img['id']
                         if img_prev and (float(img_curr) > float(img_prev)):
-                            cprint(''.join([ HIGHER_YELLOW, '%s' % ('\n[W] This images list is not sorted correctly, fallback to -rs for this list.\n\n') ]), attrs=BOLD_ONLY, end='' )  
+                            cprint(''.join([ HIGHER_YELLOW, '%s' % ('\n[W] This images list is not sorted(Due to user reorder or alphanumeric pin ID), fallback to -rs for this list.\n\n') ]), attrs=BOLD_ONLY, end='' )
                             sorted_api = False
                             reach_lastest_pin = False
                             if on_hold_break:
@@ -1112,7 +1112,7 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
                             on_hold_break = True
                         img_prev = img_curr
                     else:
-                        cprint(''.join([ HIGHER_YELLOW, '%s' % ('\n[W] This images list is not sorted correctly, fallback to -rs for this list.\n\n') ]), attrs=BOLD_ONLY, end='' )  
+                        cprint(''.join([ HIGHER_YELLOW, '%s' % ('\n[W] This images list is not sorted(Due to user reorder or alphanumeric pin ID), fallback to -rs for this list.\n\n') ]), attrs=BOLD_ONLY, end='' )
                         sorted_api = False
                         reach_lastest_pin = False
                         imgs_round = data['resource_response']['data'] # replaced back above
