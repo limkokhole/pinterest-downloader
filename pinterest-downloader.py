@@ -972,7 +972,7 @@ def fetch_imgs(board, uname, board_name, section
                 section_folder = board['section']['title']
         else:
             return quit('{}'.format('\n[' + x_tag + '] No item found.\n\
-Please ensure your username/boardname or link has media item.\n') )
+Please ensure your username/boardname/[section] or link has media item.\n') )
     except (KeyError, TypeError):
         url = '/'.join((uname, board_name))
         cprint(''.join([ HIGHER_RED, '%s %s %s' % ('\n[' + x_tag + '] Failed. URL:', url, '\n\n') ]), attrs=BOLD_ONLY, end='' )
