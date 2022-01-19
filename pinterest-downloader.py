@@ -309,7 +309,7 @@ def get_board_info(board_or_sec_path, exclude_section, section, board_path, prox
             b_dk = board_d[k]
             board_d_map = {}
             board_d_map['url'] = b_dk.get('url', '')
-            #dj(b_dk, 'board d')
+            #dj(b_dk, 'board d') # [todo:0] board_order_modified_at help decide re-scrape?
             board_d_map['id'] = b_dk.get('id', '')
             board_d_map['name'] = b_dk.get('name', '')
             board_d_map['section_count'] = b_dk.get('section_count', '')
