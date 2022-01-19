@@ -63,6 +63,7 @@ colorama.init() # Windows need this
 
 HIGHER_GREEN = Fore.LIGHTGREEN_EX
 HIGHER_RED = Fore.LIGHTRED_EX
+HIGHER_YELLOW = Fore.LIGHTYELLOW_EX
 BOLD_ONLY = ['bold']
 
 
@@ -213,7 +214,7 @@ def dj(j, tag=None):
     print(json.dumps(j, sort_keys=True, indent=4))
 
 
-def get_pin_info(pin_id, arg_timestamp_log, arg_force_update, arg_dir, arg_cut, arg_el, fs_f_max, IMG_SESSION, V_SESSION, PIN_SESSION, get_data_only):
+def get_pin_info(pin_id, arg_timestamp_log, arg_force_update, arg_dir, arg_cut, arg_el, fs_f_max, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, get_data_only):
 
     attempt = 1
     scripts = []
@@ -261,10 +262,10 @@ def get_pin_info(pin_id, arg_timestamp_log, arg_force_update, arg_dir, arg_cut, 
         # Program can't automate for you, imagine -d already 2045th bytes in full path
         #, is unwise if program make dir in parent directory.
         create_dir(arg_dir)
-        write_log( arg_timestamp_log, arg_dir, [image], image['id'], arg_cut )
+        write_log( arg_timestamp_log, arg_dir, [image], image['id'], arg_cut, False )
         print('[i] Download Pin id: ' + str(image['id']) + ' in directory: ' + arg_dir)
         printProgressBar(0, 1, prefix='[...] Downloading:', suffix='Complete', length=50)
-        download_img(image, arg_dir, arg_force_update, IMG_SESSION, V_SESSION, PIN_SESSION, arg_cut, arg_el, fs_f_max)
+        download_img(image, arg_dir, arg_force_update, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, arg_cut, arg_el, fs_f_max)
         printProgressBar(1, 1, prefix='[' + done_tag + '] Downloaded:', suffix='Complete   ', length=50)
     except KeyError:
         return quit(traceback.format_exc())
@@ -560,7 +561,7 @@ def get_output_file_path(url, arg_cut, fs_f_max, image_id, human_fname, save_dir
     return file_path
 
 
-def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, PIN_SESSION, arg_cut, arg_el, fs_f_max):
+def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, arg_cut, arg_el, fs_f_max):
 
     try:
         # Using threading.Lock() if necessary
@@ -609,12 +610,17 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, PIN_
                     try:
                         r = IMG_SESSION.get(url, stream=True, timeout=t)
                         is_ok = True
+                        #raise(requests.exceptions.ConnectionError)
                         break
                     except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
-                        cprint(''.join([ HIGHER_RED, '{}'.format('\n[' + x_tag + '] Image Timeout (Retry next).\n') ]), attrs=BOLD_ONLY, end='' )
+                        # Shouldn't print bcoz quite common
+                        time.sleep(5)
+                        IMG_SESSION = get_session(3, proxies)
+                        #cprint(''.join([ HIGHER_RED, '{}'.format('\n[' + x_tag + '] Image Timeout (Retry next).\n') ]), attrs=BOLD_ONLY, end='' )
                 
                 #print(url + ' ok? '  + str(r.ok))
 
+                #print('https://www.pinterest.com/pin/' + image['id'])
                 if is_ok and r.ok: # not `or`, 1st check is ensure no throws, 2nd check is ensure valid url
                     #print(r.text)
                     try:
@@ -625,15 +631,17 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, PIN_
                     except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
                         try:
                             time.sleep(5)
-                            r = IMG_SESSION.get(url, stream=True, timeout=300) # Need higher timeout
+                            IMG_SESSION_RETY = get_session(3, proxies)
+                            r = IMG_SESSION_RETY.get(url, stream=True, timeout=300) # Need higher timeout
                             with open(file_path, 'wb') as f:
                                 for chunk in r:
                                     f.write(chunk)
                                     #raise(requests.exceptions.ConnectionError)
                         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
                             cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this image at'
-                            , file_path, 'failed :', url, '\n') ]), attrs=BOLD_ONLY, end='' )
-                            cprint(''.join([ HIGHER_RED, '%s' % ('\n[e1] You may want to delete this image manually and retry later.\n\n') ]), attrs=BOLD_ONLY, end='' )  
+                            , file_path, 'failed URL:', url, '\n') ]), attrs=BOLD_ONLY, end='' )
+                            cprint(''.join([ HIGHER_RED, '%s' % ('\n[e1] You may want to delete this image manually and retry later(with -rs or try with single pin ' 
+                            + ('https://www.pinterest.com/pin/' + repr(image['id']).strip("'")  ) + ').\n\n') ]), attrs=BOLD_ONLY, end='' )  
                     except OSError: # e.g. File name too long
                         cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this image at'
                             , file_path, 'failed :', url, '\n') ]), attrs=BOLD_ONLY, end='' )
@@ -669,7 +677,8 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, PIN_
                                     is_ok = True
                                     break
                                 except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
-                                    pass
+                                    time.sleep(5)
+                                    IMG_SESSION = get_session(3, proxies)
                             if is_ok and r.ok:
 
                                 try:
@@ -679,7 +688,9 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, PIN_
                                         #raise(requests.exceptions.ConnectionError)
                                 except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError, requests.exceptions.ChunkedEncodingError) as e:
                                     try:
-                                        r = IMG_SESSION.get(url, stream=True, timeout=(30, None))
+                                        time.sleep(5)
+                                        IMG_SESSION_RETY = get_session(3, proxies)
+                                        r = IMG_SESSION_RETY.get(url, stream=True, timeout=(30, None))
                                         with open(file_path, 'wb') as f:
                                             for chunk in r:
                                                 f.write(chunk)
@@ -711,7 +722,7 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, PIN_
         if ('videos' in image) and image['videos']: # image['videos'] may None
             #dj(image, 'before override') # override m3u8-only data with pin details page mp4
             v_pin_id = image['id']
-            image = get_pin_info(v_pin_id, None, None, None, None, None, None, IMG_SESSION, V_SESSION, PIN_SESSION, True)
+            image = get_pin_info(v_pin_id, None, None, None, None, None, None, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, True)
             #dj(image, 'after override') # [todo:0] Rich Metadata for video write to log (only pin can get)
             if not image:
                 cprint(''.join([ HIGHER_RED, '%s %s%s' % ('\n[' + x_tag 
@@ -747,7 +758,9 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, PIN_
                             is_ok = True
                             break
                         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
-                            cprint(''.join([ HIGHER_RED, '{}'.format('\n[' + x_tag + '] Video Timeout (Retry next).\n') ]), attrs=BOLD_ONLY, end='' )
+                            # Shouldn't print bcoz quite common
+                            time.sleep(5) #cprint(''.join([ HIGHER_RED, '{}'.format('\n[' + x_tag + '] Video Timeout (Retry next).\n') ]), attrs=BOLD_ONLY, end='' )
+                            V_SESSION = get_session(4, proxies)
                     
                     #print(vurl + ' ok? '  + str(r.ok))
 
@@ -762,7 +775,8 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, PIN_
                             # requests.exceptions.ChunkedEncodingError: ("Connection broken: ConnectionResetError(104, 'Connection reset by peer')", ConnectionResetError(104, 'Connection reset by peer'))
                             time.sleep(5)
                             try:
-                                r = V_SESSION.get(vurl, stream=True, timeout=(120, None))
+                                V_SESSION_RETY = get_session(4, proxies)
+                                r = V_SESSION_RETY.get(vurl, stream=True, timeout=(120, None))
                                 with open(file_path, 'wb') as f:
                                     for chunk in r:
                                         f.write(chunk)
@@ -811,7 +825,7 @@ def create_dir(save_dir):
         You may want to to use -d <other path> OR -c <Maximum length of folder & filename>.\n\n') ]), attrs=BOLD_ONLY, end='' )  
         raise
 
-def write_log(arg_timestamp_log, save_dir, images, pin, arg_cut):
+def write_log(arg_timestamp_log, save_dir, images, pin, arg_cut, break_from_latest_pin):
 
     got_img = False
     
@@ -827,11 +841,27 @@ def write_log(arg_timestamp_log, save_dir, images, pin, arg_cut):
             log_timestamp = 'log-pinterest-downloader'
     # sanitize enough, no nid max path in case PIN id too long, throws err (too long path)
     # to inform me better than silently guess to slice [:100] early and hide this issue
+    # Currently possible long non-number A8pQTwIQQLQGWEacY5vc6og pin id
     log_path = os.path.join(save_dir, '{}'.format( sanitize(log_timestamp) + '.log' ))
 
     if images:
-        with open(log_path, 'w') as f: # Reset before append
-            f.write('Pinterest Downloader: Version ' + str(__version__)  + '\n\n') # Easy to recognize if future want to change something
+        index_last = 0
+        if break_from_latest_pin and not arg_timestamp_log:
+            try:
+                with open(log_path) as f:
+                    index_line = [l for l in f.readlines() if l.startswith('[ ')]
+                    index_last_tmp = index_line[-1].split('[ ')[1].split(' ]')[0]
+                    if index_last_tmp.isdigit():
+                        index_last = int(index_last_tmp)
+            except (FileNotFoundError, OSError, KeyError, TypeError):
+                cprint(''.join([ HIGHER_YELLOW, '%s' % ('\nWrite log increment from last log stored index failed with -u. Fallback to -lt\n\n') ]), attrs=BOLD_ONLY, end='' )  
+                log_timestamp = 'log-pinterest-downloader_' + datetime.now().strftime('%Y-%m-%d %H.%M.%S')
+                log_path = os.path.join(save_dir, '{}'.format( sanitize(log_timestamp) + '.log' ))
+                with open(log_path, 'w') as f: # Refer below else:
+                    f.write('Pinterest Downloader: Version ' + str(__version__)  + '\n\n') 
+        else:
+            with open(log_path, 'w') as f: # Reset before append
+                f.write('Pinterest Downloader: Version ' + str(__version__)  + '\n\n') # Easy to recognize if future want to change something
         skipped_total = 0
         for log_i, image in enumerate(images):
             if 'id' not in image:
@@ -860,7 +890,7 @@ def write_log(arg_timestamp_log, save_dir, images, pin, arg_cut):
                 try:
                     # Windows need utf-8
                     with open(log_path, 'a', encoding='utf-8') as f:
-                        f.write('[ ' + str(log_i + 1 - skipped_total) + ' ] Pin Id: ' + str(image_id) + '\n')
+                        f.write('[ ' + str(index_last + log_i + 1 - skipped_total) + ' ] Pin Id: ' + str(image_id) + '\n')
                         f.write(story + '\n\n')
                 except OSError: # e.g. File name too long
                     cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), attrs=BOLD_ONLY, end='' )  
@@ -872,8 +902,42 @@ def write_log(arg_timestamp_log, save_dir, images, pin, arg_cut):
     return got_img
 
 
-def fetch_imgs(board, uname, board_name, section, arg_timestamp, arg_timestamp_log, arg_force_update
-    , arg_dir, arg_thread_max, IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, arg_cut, arg_el, fs_f_max):
+def sort_func(x):
+    prefix = x.split('.')[0].split('_')[0]
+    if prefix.isdigit():
+       return float(prefix)
+    return 0
+
+
+def get_latest_pin(save_dir):
+    # Currently possible long non-number A8pQTwIQQLQGWEacY5vc6og pin id but should rare case and ignore/re-scrape is fine
+    latest_pin = '0'
+    depth = 1
+    # rf: https://stackoverflow.com/a/42720847/1074998
+    # [1] abspath() already acts as normpath() to remove trailing os.sep
+    #, and we need ensures trailing os.sep not exists to make slicing accurate. 
+    # [2] abspath() also make /../ and ////, "." get resolved even though os.walk can returns it literally.
+    # [3] expanduser() expands ~
+    # [4] expandvars() expands $HOME
+    walk_dir = os.path.abspath(os.path.expanduser(os.path.expandvars(save_dir)))
+    for root, dirs, files in os.walk(walk_dir):
+        if root[len(walk_dir):].count(os.sep) < depth:
+            imgs_f = [_ for _ in files if _.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.gif', '.mp4', '.mkv', '.webp', '.svg', '.m4a', '.mp3', '.flac', '.m3u8', '.wmv', '.webm', '.mov', '.flv', '.m4v', '.apng', '.avif' )) ] # paranoid list
+            imgs_f_sorted = sorted(imgs_f, key=sort_func)
+            if not imgs_f_sorted: # only 1 depth
+                break
+            latest_pin = imgs_f_sorted[-1].split('.')[0].split('_')[0]
+
+    #print('latest_pin: ' + latest_pin)
+    return latest_pin
+
+
+def fetch_imgs(board, uname, board_name, section
+    , arg_timestamp, arg_timestamp_log
+    , arg_force_update, arg_rescrape
+    , arg_dir, arg_thread_max
+    , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, proxies
+    , arg_cut, arg_el, fs_f_max):
     
     bookmark = None
     images = []
@@ -937,6 +1001,11 @@ Please ensure your username/boardname or link has media item.\n') )
     #if not section:
     #   print('[Board id]: '+ repr(bid)) 
 
+    if not arg_rescrape:
+        latest_pin = get_latest_pin(save_dir)
+
+    break_from_latest_pin = False
+    sorted_api = True
     while bookmark != '-end-':
 
         if section:
@@ -957,12 +1026,15 @@ Please ensure your username/boardname or link has media item.\n') )
             'board_url': url,
             'field_set_key': 'react_grid_pin',
             'filter_section_pins': 'true', 
-            'sort': 'default',
+            #'order': 'DESCENDING',#'oldest',#'default',
+            'order': 'default',
+            #'most_recent_board_sort_order': 'first_pinned_to',
             'layout':'default',
-            'page_size': 25,
+            'page_size': 25,#10,#25,
             'redux_normalize_feed': 'true',
             }
 
+        #print('bookmark: ' + repr(bookmark))
         if bookmark:
             options.update({
                 'bookmarks': [bookmark],
@@ -1007,7 +1079,52 @@ Please ensure your username/boardname or link has media item.\n') )
         # Useful for debug with print only specific id log
         #if 'e07614d79a22d22c83d51649e2e01e43' in repr(data):
         #print('res data: ' + repr(data))
-        images.extend(data['resource_response']['data'])
+        imgs_round = data['resource_response']['data']
+
+        #print()
+        #for img in imgs_round:
+        #    print('before img: ' + repr(img['id']))
+
+        reach_lastest_pin = False
+        if not arg_rescrape:
+            img_prev = 0
+            on_hold_break = False
+            for img_round_i, img in enumerate(imgs_round):
+                #print('Check: ' + repr(img['id']))
+                if (('videos' in img) and img['videos']) or 'images' in img:
+                    if img['id'].isdigit():
+                        img_curr = img['id']
+                        if img_prev and (float(img_curr) > float(img_prev)):
+                            cprint(''.join([ HIGHER_YELLOW, '%s' % ('\n[W] This images list is not sorted correctly, fallback to -rs for this list.\n\n') ]), attrs=BOLD_ONLY, end='' )  
+                            sorted_api = False
+                            reach_lastest_pin = False
+                            if on_hold_break:
+                                imgs_round = data['resource_response']['data'] # replaced back below
+                            break
+                        if on_hold_break: # Need check above 2 imgs first, test with delete 1 image in unsorted list
+                            break
+                        if latest_pin == img['id']:
+                            #print('\nAlready scroll to latest downloaded pin. Break.')
+                            #print('bookmark: ' + repr(bookmark))
+                            imgs_round = imgs_round[:img_round_i]
+                            reach_lastest_pin = True
+                            on_hold_break = True
+                        img_prev = img_curr
+                    else:
+                        cprint(''.join([ HIGHER_YELLOW, '%s' % ('\n[W] This images list is not sorted correctly, fallback to -rs for this list.\n\n') ]), attrs=BOLD_ONLY, end='' )  
+                        sorted_api = False
+                        reach_lastest_pin = False
+                        imgs_round = data['resource_response']['data'] # replaced back above
+                        break
+                else:
+                    pass #print('Not media.')
+        #for img in imgs_round:
+        #    print('real img: ' + repr(img['id']))
+        images.extend(imgs_round)
+        if reach_lastest_pin:
+            break_from_latest_pin = True
+            break
+
         #dj(data['resource_response']['data'], 'img raw')
         #print(data.keys())
         #dj(data['client_context'], 'img raw')
@@ -1018,16 +1135,35 @@ Please ensure your username/boardname or link has media item.\n') )
 
         #break # hole: testing purpose # Remember remove this after test lolr
 
+    if sorted_api:
+        images = images[::-1] # reverse order to oldest pin id -> latest pin id for -u to work
+    #for img in images:
+    #    print(img['id'])
+
     create_dir(save_dir)
-    got_img = write_log(arg_timestamp_log, save_dir, images, None, arg_cut)
+    got_img = write_log(arg_timestamp_log, save_dir, images, None, arg_cut, break_from_latest_pin)
 
     if got_img:
-        # From what I observed, always got extra index is not media, so better -1
-        # And no point to loop above and detect early, overkill
-        img_total = len(images) - 1
-        print( (' [' + plus_tag + '] Found estimated {} image' + ('s' if img_total > 1 else '') ) .format(img_total))
-    else: # empty section
-        print('\n[i] No item found.')
+        # Always got extra index is not media, so -1
+        # Didn't bring loop above detect early
+        if break_from_latest_pin: # Already cut last non-image, so no need -1
+            img_total = len(images)
+        else:
+            img_total = len(images) - 1
+        if img_total == 0:
+            if break_from_latest_pin:
+                print('\n[i] No new item found.')
+            else:
+                print('\n[i] No item found.')
+            return
+        print( (' [' + plus_tag + '] Found {} {}image/video' + ('s' if img_total > 1 else '') ) 
+            .format(img_total, 'new ' if break_from_latest_pin else  ''))
+        print('Download into folder:  ' + save_dir)
+    else:
+        if break_from_latest_pin:
+            print('\n[i] No new item found.')
+        else:
+            print('\n[i] No item found.')
         return
 
     if arg_thread_max < 1:
@@ -1036,7 +1172,7 @@ Please ensure your username/boardname or link has media item.\n') )
 
         # Create threads
         futures = {executor.submit(download_img, image, save_dir, arg_force_update
-                , IMG_SESSION, V_SESSION, PIN_SESSION, arg_cut, arg_el, fs_f_max) for image in images}
+                , IMG_SESSION, V_SESSION, PIN_SESSION, proxies, arg_cut, arg_el, fs_f_max) for image in images}
 
         # as_completed() gives you the threads once finished
         for index, f in enumerate(as_completed(futures)):
@@ -1078,7 +1214,10 @@ def main():
     arg_parser.add_argument('-bt', '--board-timestamp', dest='board_timestamp', action='store_true', help='Suffix board directory name with unique timestamp.')
     arg_parser.add_argument('-lt', '--log-timestamp', dest='log_timestamp', action='store_true', help='Suffix log-pinterest-downloader.log filename with unique timestamp. Default filename is log-pinterest-downloader.log.\n\
         Note: Pin id without Title/Description/Link/Metadata/Created_at will not write to log.')
-    arg_parser.add_argument('-f', '--force', action='store_true', help='Force re-download even if image already exist.')
+    arg_parser.add_argument('-f', '--force', action='store_true', help='Force re-download even if image already exist. Normally used with -rs')
+    # Need reverse images order(previously is latest to oldest) to avoid abort this need re-download in-between missing images.
+    arg_parser.add_argument('-rs', '--re-scrape', dest='rescrape', action='store_true', help='Default is only fetch new images since latest Pin ID image to speed up update process.\n\
+        This option disable this behavior and re-scrape all, use it when you feel missing images somewhere.') 
     arg_parser.add_argument('-es', '--exclude-section', dest='exclude_section', action='store_true', help='Exclude sections if download from username or board.')
     arg_parser.add_argument('-ps', '--https-proxy', help='Set proxy for https.')
     arg_parser.add_argument('-p', '--http-proxy', help='Set proxy for http.')
@@ -1095,11 +1234,15 @@ def main():
     if not args.path:
         return quit('Path cannot be empty. ')
 
+    arg_rescrape = args.rescrape
+    arg_log_timestamp = args.log_timestamp
+
     url_path = args.path.strip().split('?')[0].split('#')[0]
     url_path_for_board = url_path
     # Convert % format of unicode url when copied from Firefox 
     # This is important especially section need compare the section name later
-    url_path = urllib.parse.unquote_plus(url_path).rstrip('/')
+    #url_path = urllib.parse.unquote_plus(url_path).rstrip('/')
+    url_path = url_path.rstrip('/') # Now this also
     # But board can't unquote, this is just temporary quick fix
     url_path_for_board = url_path_for_board.rstrip('/')
     if '://' in url_path:
@@ -1168,7 +1311,7 @@ def main():
             PIN_SESSION = get_session(0, proxies)
             IMG_SESSION = get_session(3, proxies)
             V_SESSION = get_session(4, proxies)
-            get_pin_info(pin_id.strip(), args.log_timestamp, args.force, args.dir, args.cut, arg_el, fs_f_max, IMG_SESSION, V_SESSION, PIN_SESSION, False)
+            get_pin_info(pin_id.strip(), arg_log_timestamp, args.force, args.dir, args.cut, arg_el, fs_f_max, IMG_SESSION, V_SESSION, PIN_SESSION, False)
 
     if len(slash_path) == 3:
         sec_path = '/'.join(slash_path)
@@ -1183,9 +1326,11 @@ def main():
             IMGS_SESSION = get_session(2, proxies)
             IMG_SESSION = get_session(3, proxies)
             V_SESSION = get_session(4, proxies)
-            fetch_imgs( board, slash_path[-3], slash_path[-2], slash_path[-1], args.board_timestamp
-                , args.log_timestamp, args.force, args.dir, args.thread_max
-                , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, args.cut, arg_el, fs_f_max )
+            fetch_imgs( board, slash_path[-3], slash_path[-2], slash_path[-1]
+                , args.board_timestamp, arg_log_timestamp
+                , args.force, arg_rescrape, args.dir, args.thread_max
+                , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, proxies
+                , args.cut, arg_el, fs_f_max )
         except KeyError:
             return quit(traceback.format_exc())
 
@@ -1201,17 +1346,22 @@ def main():
             IMGS_SESSION = get_session(2, proxies)
             IMG_SESSION = get_session(3, proxies)
             V_SESSION = get_session(4, proxies)
-            fetch_imgs( board, slash_path[-2], slash_path[-1], None, args.board_timestamp, args.log_timestamp, args.force
-            , args.dir, args.thread_max, IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, args.cut, arg_el, fs_f_max )
+            fetch_imgs( board, slash_path[-2], slash_path[-1], None
+                , args.board_timestamp, arg_log_timestamp
+                , args.force, arg_rescrape, args.dir, args.thread_max
+                , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, proxies
+                , args.cut, arg_el, fs_f_max )
             if sections:
                 sec_c = len(sections)
                 print('[i] Trying to get ' + str(sec_c) + ' section{}'.format('s' if sec_c > 1 else ''))
                 for sec in sections:
                     sec_path = board_path + '/' + sec['slug']
                     board = get_board_info(sec_path, False, sec['slug'], board_path, proxies) # False not using bcoz sections not [] already
-                    fetch_imgs( board, slash_path[-2], slash_path[-1], sec['slug'], args.board_timestamp
-                        , args.log_timestamp, args.force, args.dir, args.thread_max
-                        , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, args.cut, arg_el, fs_f_max )
+                    fetch_imgs( board, slash_path[-2], slash_path[-1], sec['slug'],
+                         args.board_timestamp, arg_log_timestamp
+                        , args.force, arg_rescrape, args.dir, args.thread_max
+                        , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, proxies
+                        , args.cut, arg_el, fs_f_max )
 
         except KeyError:
             return quit(traceback.format_exc())
@@ -1234,9 +1384,10 @@ def main():
 
                 board_name = board['name']
                 board['owner']['id'] = board['id'] # hole: [todo:0] remove this
-                fetch_imgs( board, slash_path[-1], board_name, None, args.board_timestamp, args.log_timestamp
-                    , args.force, args.dir, args.thread_max
-                    , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION
+                fetch_imgs( board, slash_path[-1], board_name, None
+                    , args.board_timestamp, arg_log_timestamp
+                    , args.force, arg_rescrape, args.dir, args.thread_max
+                    , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, proxies
                     , args.cut, arg_el, fs_f_max )
                 if (not args.exclude_section) and (board['section_count'] > 0):
                     sec_c = board['section_count']
@@ -1249,9 +1400,11 @@ def main():
                         sec_path = board_path + '/' + sec['slug']
                         board = get_board_info(sec_path, False, sec['slug'], board_path, proxies) 
                         sec_uname, sec_bname = board_path.split('/')
-                        fetch_imgs( board, sec_uname, sec_bname, sec['slug'], args.board_timestamp
-                            , args.log_timestamp, args.force, args.dir, args.thread_max
-                            , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, args.cut, arg_el, fs_f_max )
+                        fetch_imgs( board, sec_uname, sec_bname, sec['slug']
+                            , args.board_timestamp, arg_log_timestamp
+                            , args.force, arg_rescrape, args.dir, args.thread_max
+                            , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, proxies
+                            , args.cut, arg_el, fs_f_max )
 
         except KeyError:
             return quit(traceback.format_exc())
