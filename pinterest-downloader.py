@@ -310,7 +310,7 @@ def get_board_info(board_or_sec_path, exclude_section, section, board_path, prox
             b_dk = board_d[k]
             board_d_map = {}
             board_d_map['url'] = b_dk.get('url', '')
-            board_d_map['modified_at'] = b_dk.get('board_order_modified_at', '')
+            #board_d_map['modified_at'] = b_dk.get('board_order_modified_at', '')
             #print('Board modified: ' + repr(board_d_map['modified_at']))
             #dj(b_dk, 'board d') # [todo:0] board_order_modified_at help decide re-scrape?
             board_d_map['id'] = b_dk.get('id', '')
@@ -1091,7 +1091,7 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
         #print('Imgs url ok: ' + str(r.ok))
         #print('Imgs url: ' + r.url)
         data = r.json()
-        dj(data, 'imgs loop raw')
+        #dj(data, 'imgs loop raw')
         # Useful for debug with print only specific id log
         #if 'e07614d79a22d22c83d51649e2e01e43' in repr(data):
         #print('res data: ' + repr(data))
