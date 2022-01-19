@@ -264,7 +264,7 @@ def get_pin_info(pin_id, arg_timestamp_log, arg_force_update, arg_dir, arg_cut, 
         #, is unwise if program make dir in parent directory.
         create_dir(arg_dir)
         write_log( arg_timestamp_log, arg_dir, [image], image['id'], arg_cut, False )
-        print('[i] Download Pin id: ' + str(image['id']) + ' in directory: ' + arg_dir)
+        print('[i] Download Pin id: ' + str(image['id']) + ' into directory: ' + arg_dir)
         printProgressBar(0, 1, prefix='[...] Downloading:', suffix='Complete', length=50)
         download_img(image, arg_dir, arg_force_update, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, arg_cut, arg_el, fs_f_max)
         printProgressBar(1, 1, prefix='[' + done_tag + '] Downloaded:', suffix='Complete   ', length=50)
@@ -1156,7 +1156,7 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
             return
         print( (' [' + plus_tag + '] Found {} {}image/video' + ('s' if img_total > 1 else '') ) 
             .format(img_total, 'new ' if break_from_latest_pin else  ''))
-        print('Download into folder:  ' + save_dir)
+        print('Download into directory:  ' + save_dir)
     else:
         print('\n[i] No {}item found.'.format('new ' if break_from_latest_pin else  ''))
         return
