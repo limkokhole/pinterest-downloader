@@ -1152,19 +1152,13 @@ Please ensure your username/boardname or link has media item.\n') )
         else:
             img_total = len(images) - 1
         if img_total == 0:
-            if break_from_latest_pin:
-                print('\n[i] No new item found.')
-            else:
-                print('\n[i] No item found.')
+            print('\n[i] No {}item found.'.format('new ' if break_from_latest_pin else  ''))
             return
         print( (' [' + plus_tag + '] Found {} {}image/video' + ('s' if img_total > 1 else '') ) 
             .format(img_total, 'new ' if break_from_latest_pin else  ''))
         print('Download into folder:  ' + save_dir)
     else:
-        if break_from_latest_pin:
-            print('\n[i] No new item found.')
-        else:
-            print('\n[i] No item found.')
+        print('\n[i] No {}item found.'.format('new ' if break_from_latest_pin else  ''))
         return
 
     if arg_thread_max < 1:
@@ -1305,7 +1299,7 @@ def main():
             PIN_SESSION = get_session(0, proxies)
             IMG_SESSION = get_session(3, proxies)
             V_SESSION = get_session(4, proxies)
-            get_pin_info(pin_id.strip(), arg_log_timestamp, args.force, args.dir, args.cut, arg_el, fs_f_max, IMG_SESSION, V_SESSION, PIN_SESSION, False)
+            get_pin_info(pin_id.strip(), arg_log_timestamp, args.force, args.dir, args.cut, arg_el, fs_f_max, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, False)
 
     if len(slash_path) == 3:
         sec_path = '/'.join(slash_path)
