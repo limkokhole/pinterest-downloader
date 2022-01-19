@@ -15,7 +15,7 @@ Download all images/videos from Pinterest user/board/section.
 - [x] Log PinID, Title, Description, Link, Metadata, [Date] to log-pinterest-downloader.log file since media filename can't fit. 
 - [x] Unique board/log name with timestamp options. 
 - [x] Proxies options. 
-- [x] Speed up exisitng folder update without re-fetch all pages. 
+- [x] Speed up existing folder update without re-fetch all pages. 
 
 ### Requirements:
 
