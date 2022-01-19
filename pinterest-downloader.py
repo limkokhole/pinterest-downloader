@@ -305,7 +305,7 @@ def get_board_info(board_or_sec_path, exclude_section, section, board_path, prox
     else:
         path_to_compare = board_or_sec_path
     for k in board_dk:
-        if unquote(board_d[k].get('url', '').strip('/')) == path_to_compare:
+        if unquote(board_d[k].get('url', '').strip('/')) == unquote(path_to_compare):
             b_dk = board_d[k]
             board_d_map = {}
             board_d_map['url'] = b_dk.get('url', '')
@@ -321,7 +321,7 @@ def get_board_info(board_or_sec_path, exclude_section, section, board_path, prox
         for k in board_sec_dk:
             b_dk = board_sec_d[k]
             sec_d_map = {}
-
+            #dj(b_dk)
             sec_slug = unquote(b_dk.get('slug', ''))
             if section and (sec_slug != section):
                 continue
