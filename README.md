@@ -93,7 +93,7 @@ Download all images/videos from Pinterest user/board/section.
 ### Example Output:
     xb@dnxb:~/Downloads/pinterest/pinterest-downloader$ python3 pinterest-downloader.py -d comp https://www.pinterest.com/antonellomiglio/computer/ 
     [...] Getting all images in this board: computer ... [ 173 / ? ] [➕] Found 195 image/videos
-    Download into directory:  comp/antonellomiglio/Computer
+    Download into directory:  comp/antonellomiglio/Computer/
     [✔] Downloaded: |##################################################| 100.0% Complete   
     [i] Time Spent: 0:00:06
     xb@dnxb:~/Downloads/pinterest/pinterest-downloader$

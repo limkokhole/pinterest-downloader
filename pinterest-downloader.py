@@ -26,7 +26,8 @@ __credits__ = ['Inspired by https://github.com/SevenLines/pinterest-board-downlo
 __license__ = 'MIT'
 # Version increase if the output file/dir naming incompatible with existing
 #, which might re-download for some files of previous version because of dir/filename not match
-__version__ = 1.8
+# Or log files structure changed reference.
+__version__ = 1.9
 __maintainer__ = 'Lim Kok Hole'
 __email__ = 'limkokhole@gmail.com'
 __status__ = 'Production'
@@ -215,7 +216,7 @@ def dj(j, tag=None):
     print(json.dumps(j, sort_keys=True, indent=4))
 
 
-def get_pin_info(pin_id, arg_timestamp_log, arg_force_update, arg_dir, arg_cut, arg_el, fs_f_max, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, get_data_only):
+def get_pin_info(pin_id, arg_timestamp_log, url_path, arg_force_update, arg_dir, arg_cut, arg_el, fs_f_max, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, get_data_only):
 
     attempt = 1
     scripts = []
@@ -263,7 +264,7 @@ def get_pin_info(pin_id, arg_timestamp_log, arg_force_update, arg_dir, arg_cut, 
         # Program can't automate for you, imagine -d already 2045th bytes in full path
         #, is unwise if program make dir in parent directory.
         create_dir(arg_dir)
-        write_log( arg_timestamp_log, arg_dir, [image], image['id'], arg_cut, False )
+        write_log( arg_timestamp_log, url_path, None, arg_dir, [image], image['id'], arg_cut, False )
         print('[i] Download Pin id: ' + str(image['id']) + ' into directory: ' + arg_dir)
         printProgressBar(0, 1, prefix='[...] Downloading:', suffix='Complete', length=50)
         download_img(image, arg_dir, arg_force_update, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, arg_cut, arg_el, fs_f_max)
@@ -729,7 +730,7 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, PIN_
         if ('videos' in image) and image['videos']: # image['videos'] may None
             #dj(image, 'before override') # override m3u8-only data with pin details page mp4
             v_pin_id = image['id']
-            image = get_pin_info(v_pin_id, None, None, None, None, None, None, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, True)
+            image = get_pin_info(v_pin_id, None, None, None, None, None, None, None, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, True)
             #dj(image, 'after override') # [todo:0] Rich Metadata for video write to log (only pin can get)
             if not image:
                 cprint(''.join([ HIGHER_RED, '%s %s%s' % ('\n[' + x_tag 
@@ -832,7 +833,7 @@ def create_dir(save_dir):
         You may want to to use -d <other path> OR -c <Maximum length of folder & filename>.\n\n') ]), attrs=BOLD_ONLY, end='' )  
         raise
 
-def write_log(arg_timestamp_log, save_dir, images, pin, arg_cut, break_from_latest_pin):
+def write_log(arg_timestamp_log, url_path, shortform, save_dir, images, pin, arg_cut, break_from_latest_pin):
 
     got_img = False
     
@@ -872,6 +873,9 @@ def write_log(arg_timestamp_log, save_dir, images, pin, arg_cut, break_from_late
         else:
             with open(log_path, 'w') as f: # Reset before append
                 f.write('Pinterest Downloader: Version ' + str(__version__)  + '\n\n') # Easy to recognize if future want to change something
+                f.write('Input URL: https://www.pinterest.com/' + url_path.rstrip('/')  + '/\n') # Reuse/refer when want to update
+                if shortform: # single pin no need
+                    f.write('Folder URL: https://www.pinterest.com/' + shortform.rstrip('/') + '/\n\n') # Reuse/refer when want to update specific folder only
         skipped_total = 0
         #print(existing_indexes)
         for log_i, image in enumerate(images):
@@ -946,8 +950,8 @@ def get_latest_pin(save_dir):
     return latest_pin
 
 
-def fetch_imgs(board, uname, board_name, section
-    , arg_timestamp, arg_timestamp_log
+def fetch_imgs(board, uname, board_slug, section_slug, is_main_board
+    , arg_timestamp, arg_timestamp_log, url_path
     , arg_force_update, arg_rescrape
     , arg_dir, arg_thread_max
     , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, proxies
@@ -955,6 +959,14 @@ def fetch_imgs(board, uname, board_name, section
     
     bookmark = None
     images = []
+
+    if is_main_board:
+        shortform = uname
+    else:
+        if section_slug:
+            shortform = '/'.join((uname, board_slug, section_slug))
+        else:
+            shortform = '/'.join((uname, board_slug))
     
     if arg_timestamp:
         timestamp_d = '_' + datetime.now().strftime('%Y-%m-%d %H.%M.%S') + '.d'
@@ -970,14 +982,15 @@ def fetch_imgs(board, uname, board_name, section
             # Might unicode, so copy from web browser become %E4%Bd 
             #... which is not the board filename I want
             board_name_folder = board['name']
+            #print('root bname: ' + repr(board_name_folder))
         elif 'board' in board:
             #uname = board['pinner']['username']
             #save_dir = os.path.join(arg_dir, uname, board['board']['name'] + timestamp_d)
             #url = board['board']['url']
             bid = board['board']['id']
             board_name_folder = board['board']['name']
-            #print(board_name_folder)
-            if section:
+            #print('child bname: ' + repr(board_name_folder))
+            if section_slug:
                 try:
                     section_id = board['section']['id']
                 except (KeyError, TypeError):
@@ -987,8 +1000,7 @@ def fetch_imgs(board, uname, board_name, section
             return quit('{}'.format('\n[' + x_tag + '] No item found.\n\
 Please ensure your username/boardname/[section] or link has media item.\n') )
     except (KeyError, TypeError):
-        url = '/'.join((uname, board_name))
-        cprint(''.join([ HIGHER_RED, '%s %s %s' % ('\n[' + x_tag + '] Failed. URL:', url, '\n\n') ]), attrs=BOLD_ONLY, end='' )
+        cprint(''.join([ HIGHER_RED, '%s %s %s' % ('\n[' + x_tag + '] Failed. Path:', shortform, '\n\n') ]), attrs=BOLD_ONLY, end='' )
         return quit(traceback.format_exc() + '\n[!] Something wrong with Pinterest URL. Please report this issue at https://github.com/limkokhole/pinterest-downloader/issues , thanks.') 
 
     fs_d_max = fs_f_max
@@ -996,7 +1008,7 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
     #    if arg_el: # Directory cannot use -el
     #        fs_d_max = WIN_MAX_PATH
 
-    if section:
+    if section_slug:
         # Put -1 fot arg_cut arg bcoz don't want cut on directory
         # to avoid cut become empty (or provide new arg -c-cut-directory
         # , but overcomplicated and in reality who want to cut dir?
@@ -1004,15 +1016,19 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
         save_dir = os.path.join( arg_dir,  get_max_path(-1, fs_d_max, sanitize(uname), None)
             , get_max_path(-1, fs_d_max, sanitize(board_name_folder + timestamp_d), None)
             , get_max_path(-1, fs_d_max, sanitize(section_folder), None) )
-        url = '/' + '/'.join((uname, board_name, section)) + '/'
+        # Impossible is_main_board here
+        url = '/' + '/'.join((uname, board_slug, section_slug)) + '/'
     else:
         save_dir = os.path.join( arg_dir,  get_max_path(-1, fs_d_max, sanitize(uname), None)
             , get_max_path(-1, fs_d_max, sanitize(board_name_folder + timestamp_d), None))
         # If boardname in url is lowercase but title startswith ' which quotes to %22 and cause err
         #... So don't use board_name_folder as board_name in url below to call API
-        url = '/'.join((uname, board_name))
+        if is_main_board:
+            url = uname
+        else:
+            url = '/'.join((uname, board_slug))
 
-    #if not section:
+    #if not section_slug:
     #   print('[Board id]: '+ repr(bid)) 
 
     if not arg_rescrape:
@@ -1022,7 +1038,7 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
     sorted_api = True
     while bookmark != '-end-':
 
-        if section:
+        if section_slug:
 
             options = {
             'isPrefetch': 'false',
@@ -1060,12 +1076,12 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
         if i_len < 0:
             i_len = 0
         # Got end='' here also not able make flush work
-        if section:
+        if section_slug:
             print('\r[...] Getting all images in this section: {}/{} ... [ {} / ? ]'
-                .format(board_name, section, str(i_len)), end='')
+                .format(board_slug, section_slug, str(i_len)), end='')
         else:
             print('\r[...] Getting all images in this board: {} ... [ {} / ? ]'
-                .format(board_name, str(i_len)), end='')
+                .format(board_slug, str(i_len)), end='')
         sys.stdout.flush()
 
         post_d = urllib.parse.urlencode({
@@ -1081,7 +1097,7 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
         #print(post_d)
         #print('[imgs] called headers: ' + repr(IMGS_SESSION.headers))
 
-        if section:
+        if section_slug:
             r = IMGS_SESSION.get('https://www.pinterest.com/resource/BoardSectionPinsResource/get/'
                 , params=post_d, timeout=30)
         else:
@@ -1157,7 +1173,7 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
     #    print(img['id'])
 
     create_dir(save_dir)
-    got_img = write_log(arg_timestamp_log, save_dir, images, None, arg_cut, break_from_latest_pin)
+    got_img = write_log(arg_timestamp_log, url_path, shortform, save_dir, images, None, arg_cut, break_from_latest_pin)
 
     if got_img:
         # Always got extra index is not media, so -1
@@ -1171,7 +1187,7 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
             return
         print( (' [' + plus_tag + '] Found {} {}image/video' + ('s' if img_total > 1 else '') ) 
             .format(img_total, 'new ' if break_from_latest_pin else  ''))
-        print('Download into directory:  ' + save_dir)
+        print('Download into directory:  ' + save_dir.rstrip(os.sep) + os.sep)
     else:
         print('\n[i] No {}item found.'.format('new ' if break_from_latest_pin else  ''))
         return
@@ -1314,7 +1330,7 @@ def main():
             PIN_SESSION = get_session(0, proxies)
             IMG_SESSION = get_session(3, proxies)
             V_SESSION = get_session(4, proxies)
-            get_pin_info(pin_id.strip(), arg_log_timestamp, args.force, args.dir, args.cut, arg_el, fs_f_max, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, False)
+            get_pin_info(pin_id.strip(), arg_log_timestamp, url_path, args.force, args.dir, args.cut, arg_el, fs_f_max, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, False)
 
     if len(slash_path) == 3:
         sec_path = '/'.join(slash_path)
@@ -1329,8 +1345,8 @@ def main():
             IMGS_SESSION = get_session(2, proxies)
             IMG_SESSION = get_session(3, proxies)
             V_SESSION = get_session(4, proxies)
-            fetch_imgs( board, slash_path[-3], slash_path[-2], slash_path[-1]
-                , args.board_timestamp, arg_log_timestamp
+            fetch_imgs( board, slash_path[-3], slash_path[-2], slash_path[-1], False
+                , args.board_timestamp, arg_log_timestamp, url_path
                 , args.force, arg_rescrape, args.dir, args.thread_max
                 , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, proxies
                 , args.cut, arg_el, fs_f_max )
@@ -1348,8 +1364,8 @@ def main():
             IMGS_SESSION = get_session(2, proxies)
             IMG_SESSION = get_session(3, proxies)
             V_SESSION = get_session(4, proxies)
-            fetch_imgs( board, slash_path[-2], slash_path[-1], None
-                , args.board_timestamp, arg_log_timestamp
+            fetch_imgs( board, slash_path[-2], slash_path[-1], None, False
+                , args.board_timestamp, arg_log_timestamp, url_path
                 , args.force, arg_rescrape, args.dir, args.thread_max
                 , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, proxies
                 , args.cut, arg_el, fs_f_max )
@@ -1359,8 +1375,8 @@ def main():
                 for sec in sections:
                     sec_path = board_path + '/' + sec['slug']
                     board = get_board_info(sec_path, False, sec['slug'], board_path, proxies) # False not using bcoz sections not [] already
-                    fetch_imgs( board, slash_path[-2], slash_path[-1], sec['slug'],
-                         args.board_timestamp, arg_log_timestamp
+                    fetch_imgs( board, slash_path[-2], slash_path[-1], sec['slug'], False
+                        , args.board_timestamp, arg_log_timestamp, url_path
                         , args.force, arg_rescrape, args.dir, args.thread_max
                         , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, proxies
                         , args.cut, arg_el, fs_f_max )
@@ -1384,26 +1400,34 @@ def main():
                     print('Skip no name')
                     continue
 
-                board_name = board['name']
+                #dj(board)
+                # E.g. /example/commodore-computers/ need trim to example/commodore-computers
+                board_path = board['url'].strip('/')
+                # fetch_imgs() hould use url style `A-B`` instead of Title `A B``(board['name'])
+                #print(board_path)
+                if '/' in board_path:
+                    board_slug = board_path.split('/')[1]
+                    is_main_board = False
+                else: # username main board
+                    board_slug = board_path
+                    is_main_board = True
                 board['owner']['id'] = board['id'] # hole: [todo:0] remove this
-                fetch_imgs( board, slash_path[-1], board_name, None
-                    , args.board_timestamp, arg_log_timestamp
+                fetch_imgs( board, slash_path[-1], board_slug, None, is_main_board
+                    , args.board_timestamp, arg_log_timestamp, url_path
                     , args.force, arg_rescrape, args.dir, args.thread_max
                     , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, proxies
                     , args.cut, arg_el, fs_f_max )
                 if (not args.exclude_section) and (board['section_count'] > 0):
                     sec_c = board['section_count']
                     print('[i] Trying to get ' + str(sec_c) + ' section{}'.format('s' if sec_c > 1 else ''))
-                    # E.g. /example/commodore-computers/ need trim to example/commodore-computers
-                    board_path = board['url'].strip('/')
                     # ags.es placeholder below always False bcoz above already check (not args.exclude_section) 
                     board, sections = get_board_info(board_path, False, None, None, proxies)
                     for sec in sections:
                         sec_path = board_path + '/' + sec['slug']
                         board = get_board_info(sec_path, False, sec['slug'], board_path, proxies) 
                         sec_uname, sec_bname = board_path.split('/')
-                        fetch_imgs( board, sec_uname, sec_bname, sec['slug']
-                            , args.board_timestamp, arg_log_timestamp
+                        fetch_imgs( board, sec_uname, sec_bname, sec['slug'], False
+                            , args.board_timestamp, arg_log_timestamp, url_path
                             , args.force, arg_rescrape, args.dir, args.thread_max
                             , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, proxies
                             , args.cut, arg_el, fs_f_max )
