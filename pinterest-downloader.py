@@ -1150,6 +1150,8 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
         if not arg_rescrape and sorted_api and (latest_pin != '0'):
             img_prev = 0
             on_hold_break = False
+            # Video + thumbnails has 2 same id files with diff extension
+            #, but API only return single item, so no nid handle equal flow
             for img_round_i, img in enumerate(imgs_round):
                 #print('Check: ' + repr(img['id']))
                 if (('videos' in img) and img['videos']) or 'images' in img:
