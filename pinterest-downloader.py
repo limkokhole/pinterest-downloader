@@ -582,7 +582,9 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, PIN_
         if ('grid_title' in image) and image['grid_title']:
             human_fname = '_' + image['grid_title']
         # Got case NoneType
-        if ('description' in image) and image['description'] and image['description'].strip():
+        if ('closeup_unified_description' in image) and image['closeup_unified_description'] and image['closeup_unified_description'].strip():
+            human_fname = '_'.join((human_fname, image['closeup_unified_description'].strip()))
+        elif ('description' in image) and image['description'] and image['description'].strip():
             human_fname = '_'.join((human_fname, image['description'].strip()))
         if ('created_at' in image) and image['created_at']:
             # Don't want ':' become '..' later, so remove ':' early
