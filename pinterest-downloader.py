@@ -1236,7 +1236,7 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
             printProgressBar(index + 1, len(images), prefix='[...] Downloading:'
                 , suffix='Complete', length=50)
 
-    # Need suffix with extra 3 spaces to replace previos longer ... + Downloading->ed line
+    # Need suffix with extra 3 spaces to replace previous longer ... + Downloading->ed line
     # ... to avoid see wrong word "Complete"
     printProgressBar(len(images), len(images), prefix='[' + done_tag + '] Downloaded:'
         , suffix='Complete   ', length=50)
@@ -1440,6 +1440,7 @@ def main():
                     board_slug = board_path
                     is_main_board = True
                 board['owner']['id'] = board['id'] # hole: [todo:0] remove this
+
                 fetch_imgs( board, slash_path[-1], board_slug, None, is_main_board
                     , args.board_timestamp, arg_log_timestamp, url_path
                     , args.force, arg_rescrape, args.dir, args.thread_max
