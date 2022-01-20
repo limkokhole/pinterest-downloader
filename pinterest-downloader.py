@@ -921,16 +921,18 @@ def write_log(arg_timestamp_log, url_path, shortform, save_dir, images, pin, arg
             #print(image_id)
             # if use 'title' may returns dict {'format': 'Find more ideas', 'text': None, 'args': []}
             if ('grid_title' in image) and image['grid_title']:
-                story = '\nTitle: ' + image['grid_title']
+                story = '\nTitle: ' + image['grid_title'].replace('\n', ' ').strip()
             # Got case NoneType
-            if ('description' in image) and image['description'] and image['description'].strip():
-                story += '\nDescription: ' + image['description'].strip()
+            if ('closeup_unified_description' in image) and image['closeup_unified_description'] and image['closeup_unified_description'].strip():
+                story += '\nDescription: ' + image['closeup_unified_description'].replace('\n', ' ').strip()
+            elif ('description' in image) and image['description'] and image['description'].strip():
+                story += '\nDescription: ' + image['description'].replace('\n', ' ').strip()
             if ('created_at' in image) and image['created_at']:
-                story += '\nCreated at: ' + image['created_at']
+                story += '\nCreated at: ' + image['created_at'].replace('\n', ' ').strip()
             if ('link' in image) and image['link']:
-                story += ('\nLink: ' + image['link'])
+                story += '\nLink: ' + image['link'].replace('\n', ' ').strip()
             if ('rich_metadata' in image) and image['rich_metadata']:
-                story += ('\n\nMetadata: ' + repr(image['rich_metadata']))
+                story += '\n\nMetadata: ' + repr(image['rich_metadata']).replace('\n', ' ').strip()
             if story:
                 try:
                     # Windows need utf-8
