@@ -107,7 +107,7 @@ Download all images/videos from Pinterest user/board/section.
     [i] No new item found.
     [i] Time Spent: 0:00:04
 
-##### Rerun in future(upload or delete highest pin id files to test) to fetch new items only which Pin IDs higher than exising Pin ID(speed up without fetch all pages(use -rs if user reordered concerns):
+##### Rerun in future(upload or delete highest pin id files to test) to fetch new items only which Pin IDs higher than exising Pin ID, speed up without fetch all pages for large board(use -rs if user reordered concerns):
     xb@dnxb:~/Downloads/pinterest/pinterest-downloader$ python3 pinterest-downloader.py -d comp https://www.pinterest.com/antonellomiglio/computer/
     [i] Job is download single board by username/boardname: antonellomiglio/computer
     [...] Getting all images in this board: computer ... [ 0 / ? ] [➕] Found 5 new image/videos
