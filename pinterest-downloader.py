@@ -852,6 +852,17 @@ def write_log(arg_timestamp_log, url_path, shortform, save_dir, images, pin, arg
     # Currently possible long non-number A8pQTwIQQLQGWEacY5vc6og pin id
     log_path = os.path.join(save_dir, '{}'.format( sanitize(log_timestamp) + '.log' ))
 
+    if not pin:
+        # Since no image will not log, so need separate file store for urls
+        # Don't want combine with old log or else you need open the file to see got title/desc or not even though no content.
+        log_url_path = os.path.join(save_dir, 'urls-pinterest-downloader.urls')
+
+        with open(log_url_path, 'w') as f:
+            f.write('Pinterest Downloader: Version ' + str(__version__)  + '\n\n') # Easy to recognize if future want to change something
+            f.write('Input URL: https://www.pinterest.com/' + url_path.rstrip('/')  + '/\n') # Reuse/refer when want to update
+            if shortform: # single pin no need
+                f.write('Folder URL: https://www.pinterest.com/' + shortform.rstrip('/') + '/\n\n') # Reuse/refer when want to update specific folder only
+            
     if images:
         index_last = 0
         existing_indexes = []
@@ -876,6 +887,8 @@ def write_log(arg_timestamp_log, url_path, shortform, save_dir, images, pin, arg
                 f.write('Input URL: https://www.pinterest.com/' + url_path.rstrip('/')  + '/\n') # Reuse/refer when want to update
                 if shortform: # single pin no need
                     f.write('Folder URL: https://www.pinterest.com/' + shortform.rstrip('/') + '/\n\n') # Reuse/refer when want to update specific folder only
+                else:
+                    f.write('\n')
         skipped_total = 0
         #print(existing_indexes)
         for log_i, image in enumerate(images):
@@ -931,16 +944,14 @@ def get_latest_pin(save_dir):
     # Currently possible long non-number A8pQTwIQQLQGWEacY5vc6og pin id but should rare case and ignore/re-scrape is fine
     latest_pin = '0'
     depth = 1
-    # rf: https://stackoverflow.com/a/42720847/1074998
+    # rf: https://stackoverflow.com/a/42720847/1074998 # Don't use expanduser and expandvars for arbitrary input
     # [1] abspath() already acts as normpath() to remove trailing os.sep
     #, and we need ensures trailing os.sep not exists to make slicing accurate. 
     # [2] abspath() also make /../ and ////, "." get resolved even though os.walk can returns it literally.
-    # [3] expanduser() expands ~
-    # [4] expandvars() expands $HOME
-    walk_dir = os.path.abspath(os.path.expanduser(os.path.expandvars(save_dir)))
+    walk_dir = os.path.abspath(save_dir)
     for root, dirs, files in os.walk(walk_dir):
         if root[len(walk_dir):].count(os.sep) < depth:
-            imgs_f = [_ for _ in files if _.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.gif', '.mp4', '.mkv', '.webp', '.svg', '.m4a', '.mp3', '.flac', '.m3u8', '.wmv', '.webm', '.mov', '.flv', '.m4v', '.apng', '.avif' )) ] # paranoid list
+            imgs_f = [_ for _ in files if _.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.gif', '.mp4', '.mkv', '.webp', '.svg', '.m4a', '.mp3', '.flac', '.m3u8', '.wmv', '.webm', '.mov', '.flv', '.m4v', '.ogg', '.avi', '.wav', '.apng', '.avif' )) ] # paranoid list
             imgs_f_sorted = sorted(imgs_f, key=sort_func)
             if not imgs_f_sorted: # only 1 depth
                 break
