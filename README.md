@@ -115,3 +115,39 @@ Download all images/videos from Pinterest user/board/section.
     [✔] Downloaded: |##################################################| 100.0% Complete   
     [i] Time Spent: 0:00:04
 
+##### URL used by rerun can refer urls-pinterest-downloader.urls file in relevant folder(except downlaod single Pin):
+    xb@dnxb:~/Downloads/pinterest/pinterest-downloader/comp/antonellomiglio/Computer$ cat urls-pinterest-downloader.urls 
+    Pinterest Downloader: Version 1.9
+
+    Input URL: https://www.pinterest.com/antonellomiglio/computer/
+    Folder URL: https://www.pinterest.com/antonellomiglio/computer/
+
+##### Or log-pinterest-downloader.log (only exist if any folder item contains title/description/link/metadata). Currently only "download as single Pin" able to get description and metadata.
+    xb@dnxb:~/Downloads/pinterest/pinterest-downloader$ head -28 comp/antonellomiglio/Computer/log-pinterest-downloader.log 
+    Pinterest Downloader: Version 1.9
+
+    Input URL: https://www.pinterest.com/antonellomiglio/computer/
+    Folder URL: https://www.pinterest.com/antonellomiglio/computer/
+
+    [ 1 ] Pin Id: 566538828106779478
+
+    Description: I have owned the classic, performa 636cd, performa 6300av.  I still own the cube, Mac Pro G3, G4, G5, first FireWire iPod, iPod video, Apple TV, MacBook Pro 13, ipad 64 gb lte version. 2x iPhone 4S.
+    Link: http://cdn.b.design.org/imagecache/blog-full-scale/blog/2011/10/07/maclegacy.jpg
+
+    [ 2 ] Pin Id: 566538828111292022
+
+    Description: Vintage Apple Macintosh SE/30 Computer
+
+    [ 3 ] Pin Id: 566538828111292026
+
+    Description: best part...ALL #iPhone #smartphones can fit in #PortaPocket... no problem. WEAR your cell, loves. xoxo
+
+    [ 4 ] Pin Id: 566538828111292037
+
+    Title: apple-history.com
+    Description: Macintosh Color Classic (uno dei miei preferiti!)
+    Link: http://apple-history.com/colorclassic
+
+    [ 5 ] Pin Id: 566538828111292039
+
+    Description: "Apple Mac"
