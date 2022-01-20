@@ -864,8 +864,10 @@ def write_log(arg_timestamp_log, url_path, shortform, save_dir, images, pin, arg
                 f.write('Folder URL: https://www.pinterest.com/' + shortform.rstrip('/') + '/\n\n') # Reuse/refer when want to update specific folder only
             
     if images:
+        #dj(images)
         index_last = 0
         existing_indexes = []
+
         if break_from_latest_pin and not arg_timestamp_log:
             try:
                 with open(log_path) as f:
@@ -882,17 +884,26 @@ def write_log(arg_timestamp_log, url_path, shortform, save_dir, images, pin, arg
                 with open(log_path, 'w') as f: # Refer below else:
                     f.write('Pinterest Downloader: Version ' + str(__version__)  + '\n\n') 
         else:
-            with open(log_path, 'w') as f: # Reset before append
-                f.write('Pinterest Downloader: Version ' + str(__version__)  + '\n\n') # Easy to recognize if future want to change something
-                f.write('Input URL: https://www.pinterest.com/' + url_path.rstrip('/')  + '/\n') # Reuse/refer when want to update
-                if shortform: # single pin no need
-                    f.write('Folder URL: https://www.pinterest.com/' + shortform.rstrip('/') + '/\n\n') # Reuse/refer when want to update specific folder only
-                else:
-                    f.write('\n')
+
+            if break_from_latest_pin: # Already cut last non-image, so no need -1
+                img_total = len(images)
+            else:
+                img_total = len(images) - 1
+            if img_total == 0: # No need create log when empty folder, but still created .urls above
+                return False
+            else:
+                with open(log_path, 'w') as f: # Reset before append
+                    f.write('Pinterest Downloader: Version ' + str(__version__)  + '\n\n') # Easy to recognize if future want to change something
+                    f.write('Input URL: https://www.pinterest.com/' + url_path.rstrip('/')  + '/\n') # Reuse/refer when want to update
+                    if shortform: # single pin no need
+                        f.write('Folder URL: https://www.pinterest.com/' + shortform.rstrip('/') + '/\n\n') # Reuse/refer when want to update specific folder only
+                    else:
+                        f.write('\n')
         skipped_total = 0
         #print(existing_indexes)
         for log_i, image in enumerate(images):
             if 'id' not in image:
+                #dj(image)
                 skipped_total+=1
                 continue
             got_img = True
@@ -900,6 +911,7 @@ def write_log(arg_timestamp_log, url_path, shortform, save_dir, images, pin, arg
             if image_id in existing_indexes: 
                 # Still got_img True to try re-download flow since only want to ensure log don't want duplicated if reorder
                 continue
+            #dj(image)
             #print('got img: ' + image_id) # Possible got id but empty section
             #, so still failed to use got_img to skip showing estimated 1 image if actually empty
             story = ''
@@ -1205,6 +1217,7 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
 
     if arg_thread_max < 1:
         arg_thread_max = None # Use default: "number of processors on the machine, multiplied by 5"
+
     with ThreadPoolExecutor(max_workers = arg_thread_max) as executor:
 
         # Create threads
