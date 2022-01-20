@@ -885,7 +885,9 @@ def write_log(arg_timestamp_log, url_path, shortform, save_dir, images, pin, arg
                     f.write('Pinterest Downloader: Version ' + str(__version__)  + '\n\n') 
         else:
 
-            if break_from_latest_pin: # Already cut last non-image, so no need -1
+            if pin:
+                img_total = 1
+            elif break_from_latest_pin: # Already cut last non-image, so no need -1
                 img_total = len(images)
             else:
                 img_total = len(images) - 1
