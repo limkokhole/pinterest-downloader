@@ -60,8 +60,11 @@ Download all images/videos from Pinterest user/board/section.
                             Normally used with -rs
       -rs, --re-scrape      Default is only fetch new images since latest Pin ID
                             image to speed up update process. This option disable
-                            this behavior and re-scrape all, use it when you feel
-                            missing images somewhere(caused by reorder).
+                            that behavior and re-scrape all, use it when you feel
+                            missing images somewhere or incomplete download. This
+                            issue is because Pinterest only lists reordered as you
+                            see in the webpage which affects sort by time/PinID
+                            trick.
       -es, --exclude-section
                                 Exclude sections if download from username or board.
       -ps HTTPS_PROXY, --https-proxy HTTPS_PROXY
@@ -96,5 +99,19 @@ Download all images/videos from Pinterest user/board/section.
     Download into directory:  comp/antonellomiglio/Computer/
     [✔] Downloaded: |##################################################| 100.0% Complete   
     [i] Time Spent: 0:00:06
-    xb@dnxb:~/Downloads/pinterest/pinterest-downloader$
+
+##### Rerun(ensure same directory) will no new item found since latest pin Id file:
+    xb@dnxb:~/Downloads/pinterest/pinterest-downloader$ python3 pinterest-downloader.py -d comp https://www.pinterest.com/antonellomiglio/computer/
+    [i] Job is download single board by username/boardname: antonellomiglio/computer
+    [...] Getting all images in this board: computer ... [ 0 / ? ]
+    [i] No new item found.
+    [i] Time Spent: 0:00:04
+
+##### Rerun in future(upload or delete highest pin id files to test) to fetch new items only which Pin IDs higher than exising Pin ID(speed up without fetch all pages(use -rs if user reordered concerns):
+    xb@dnxb:~/Downloads/pinterest/pinterest-downloader$ python3 pinterest-downloader.py -d comp https://www.pinterest.com/antonellomiglio/computer/
+    [i] Job is download single board by username/boardname: antonellomiglio/computer
+    [...] Getting all images in this board: computer ... [ 0 / ? ] [➕] Found 5 new image/videos
+    Download into directory:  comp/antonellomiglio/Computer/
+    [✔] Downloaded: |##################################################| 100.0% Complete   
+    [i] Time Spent: 0:00:04
 

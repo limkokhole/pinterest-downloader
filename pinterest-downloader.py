@@ -954,7 +954,7 @@ def write_log(arg_timestamp_log, url_path, shortform, save_dir, images, pin, arg
 def sort_func(x):
     prefix = x.split('.')[0].split('_')[0]
     if prefix.isdigit():
-       return float(prefix)
+       return int(prefix)
     return 0
 
 
@@ -1155,7 +1155,7 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
                 if (('videos' in img) and img['videos']) or 'images' in img:
                     if img['id'].isdigit():
                         img_curr = img['id']
-                        if img_prev and (float(img_curr) > float(img_prev)):
+                        if img_prev and (int(img_curr) > int(img_prev)):
                             cprint(''.join([ HIGHER_YELLOW, '%s' % ('\n[W] This images list is not sorted(Due to user reorder or alphanumeric pin ID), fallback to -rs for this list.\n\n') ]), attrs=BOLD_ONLY, end='' )
                             sorted_api = False
                             reach_lastest_pin = False
@@ -1273,7 +1273,8 @@ def main():
     arg_parser.add_argument('-f', '--force', action='store_true', help='Force re-download even if image already exist. Normally used with -rs')
     # Need reverse images order(previously is latest to oldest) to avoid abort this need re-download in-between missing images.
     arg_parser.add_argument('-rs', '--re-scrape', dest='rescrape', action='store_true', help='Default is only fetch new images since latest Pin ID image to speed up update process.\n\
-        This option disable this behavior and re-scrape all, use it when you feel missing images somewhere(caused by reorder).') 
+        This option disable that behavior and re-scrape all, use it when you feel missing images somewhere or incomplete download.\n\
+        This issue is because Pinterest only lists reordered as you see in the webpage which affects sort by time/PinID trick.') 
     arg_parser.add_argument('-es', '--exclude-section', dest='exclude_section', action='store_true', help='Exclude sections if download from username or board.')
     arg_parser.add_argument('-ps', '--https-proxy', help='Set proxy for https.')
     arg_parser.add_argument('-p', '--http-proxy', help='Set proxy for http.')
