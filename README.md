@@ -122,7 +122,7 @@ Download all images/videos from Pinterest user/board/section.
     Input URL: https://www.pinterest.com/antonellomiglio/computer/
     Folder URL: https://www.pinterest.com/antonellomiglio/computer/
 
-##### Or log-pinterest-downloader.log (only exist if any folder item contains title/description/link/metadata). Currently only "download as single Pin" able to get description and metadata.
+##### Or log-pinterest-downloader.log (only exist if any folder item contains title/description/link/metadata).
     xb@dnxb:~/Downloads/pinterest/pinterest-downloader$ head -28 comp/antonellomiglio/Computer/log-pinterest-downloader.log 
     Pinterest Downloader: Version 1.9
 
