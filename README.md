@@ -16,7 +16,7 @@ Download all images/videos from Pinterest user/board/section.
 - [x] Unique board/log name with timestamp options. 
 - [x] Proxies options. 
 - [x] Speed up existing folder update without re-fetch all pages. 
-- [x] Update all option.
+- [x] Update all folders option.
 
 ### Requirements:
 
