@@ -67,10 +67,11 @@ Download all images/videos from Pinterest user/board/section.
                            reordered as you see in the webpage which possible
                            newer images reorder below local highest Pin ID image
                            and missed unless fetch all pages.
-      -ua, --update-all     Update all in current directory. Only Options other
-                           than -c, -j, and -rs will ignore. -c must same if
-                           provided previously or else filename not same will re-
-                           download. Not recommend to use -c at all.
+      -ua, --update-all     Update all in current directory recursively. Options
+                           other than -c, -j, and -rs will ignore. -c must same
+                           if provided previously or else filename not same will
+                           re-download. Not recommend to use -c at all.
+
       -es, --exclude-section
                                 Exclude sections if download from username or board.
       -ps HTTPS_PROXY, --https-proxy HTTPS_PROXY

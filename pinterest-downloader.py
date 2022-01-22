@@ -1512,7 +1512,7 @@ def run_direct_main():
     arg_parser.add_argument('-rs', '--re-scrape', dest='rescrape', action='store_true', help='Default is only fetch new images since latest(highest) Pin ID local image to speed up update process.\n\
         This option disable that behavior and re-scrape all, use it when you feel missing images somewhere or incomplete download.\n\
         This issue is because Pinterest only lists reordered as you see in the webpage which possible newer images reorder below local highest Pin ID image and missed unless fetch all pages.') 
-    arg_parser.add_argument('-ua', '--update-all', dest='update_all', action='store_true', help='Update all in current directory. Only\n\
+    arg_parser.add_argument('-ua', '--update-all', dest='update_all', action='store_true', help='Update all in current directory recursively.\n\
         Options other than -c, -j, and -rs will ignore.\n\
         -c must same if provided previously or else filename not same will re-download. Not recommend to use -c at all.') 
     arg_parser.add_argument('-es', '--exclude-section', dest='exclude_section', action='store_true', help='Exclude sections if download from username or board.')
