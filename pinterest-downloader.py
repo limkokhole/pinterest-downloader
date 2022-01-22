@@ -1296,6 +1296,7 @@ def update_all( arg_thread_max :int, arg_cut :int, arg_rescrape :bool):
         print('\nUpdating [ ' + str(i+1) + ' / ' + total_str + ' ] \nChange to directory: ' + str(dir_origin) + ' \nURL: ' + str(input_url))
         os.chdir(dir_origin)
         #ime.sleep(1)
+        print('-ua temporary disabled.')
         #run_library_main(input_url, '.',  arg_thread_max, arg_cut, False, False, False, False, arg_rescrape, False, None, None)
 
 
