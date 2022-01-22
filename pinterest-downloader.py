@@ -34,7 +34,7 @@ __status__ = 'Production'
 
 # Note: Support python 3 but not python 2
 
-import sys, os, traceback
+import sys, os, re, traceback
 from pathlib import PurePath
 import platform
 plat = platform.system().lower()
@@ -1248,14 +1248,56 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
     print()
 
 
+def update_all( arg_thread_max :int, arg_cut :int, arg_rescrape :bool):
+    bk_cwd = os.getcwd()
+    imgs_f = []
+    for root, dirs, files in os.walk(bk_cwd):
+        #print('#r: ' + repr(root) + ' #d: ' + repr(dirs) + ' #f: ' + repr(files))
+        imgs_f.extend( [os.path.join(root, _) for _ in files if (_ == 'urls-pinterest-downloader.urls') ] )
+
+    urls_map = {}
+    for f in imgs_f:
+        r = open(f, "r")
+        input_url = None
+        folder_url = None
+        for line in r:
+            if re.search('^Input URL: ', line):
+                input_url = line.split('Input URL: ')[1].strip()
+            elif re.search('^Folder URL: ', line):
+                folder_url = line.split('Folder URL: ')[1].strip()
+            if input_url and folder_url:
+                cd_back_count = len(folder_url.split('https://www.pinterest.com/')[1].split('/'))
+                dir_origin = os.path.realpath( os.path.join(f, '../'*cd_back_count ) )
+                if dir_origin in urls_map:
+                    #print(urls_map[dir_origin][2], input_url, folder_url)
+                    if cd_back_count < urls_map[dir_origin][1]: # cd_back_count: 4 means section, 3 means board, 2 means username
+                        urls_map[dir_origin] = (input_url, cd_back_count)
+                    #else:
+                    #    print('Skip child')
+                else:
+                    urls_map[dir_origin] = (input_url, cd_back_count)
+                break
+
+    total_str = str(len(urls_map))
+    bk_cwd = os.getcwd()
+    for i, (dir_origin, (input_url, _)) in enumerate(urls_map.items()):
+        print('\nUpdating [ ' + str(i+1) + ' / ' + total_str + ' ] \nChange to directory: ' + str(dir_origin) + ' \nURL: ' + str(input_url))
+        os.chdir(dir_origin)
+        #ime.sleep(1)
+        run_library_main(input_url, '.',  arg_thread_max, arg_cut, False, False, False, False, arg_rescrape, False, None, None)
+
+
 # Caller script example:
 # import importlib
 # pin_dl = importlib.import_module('pinterest-downloader')
 # pin_dl.run_library_main('antonellomiglio/computer', '.', 0, -1, False, False, False, False, False, None, None)
 def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :int
     , arg_board_timestamp :bool, arg_log_timestamp :bool
-    , arg_force :bool, arg_rescrape :bool, arg_exclude_section :bool
+    , arg_force :bool, arg_exclude_section :bool, arg_rescrape :bool, arg_update_all :bool
     , arg_https_proxy :str, arg_http_proxy :str):
+
+    if arg_update_all:
+        return update_all(arg_thread_max, arg_cut, arg_rescrape)
 
     start_time = int(time.time())
 
@@ -1470,6 +1512,9 @@ def run_direct_main():
     arg_parser.add_argument('-rs', '--re-scrape', dest='rescrape', action='store_true', help='Default is only fetch new images since latest(highest) Pin ID local image to speed up update process.\n\
         This option disable that behavior and re-scrape all, use it when you feel missing images somewhere or incomplete download.\n\
         This issue is because Pinterest only lists reordered as you see in the webpage which possible newer images reorder below local highest Pin ID image and missed unless fetch all pages.') 
+    arg_parser.add_argument('-ua', '--update-all', dest='update_all', action='store_true', help='Update all in current directory. Only\n\
+        Options other than -c, -j, and -rs will ignore.\n\
+        -c must same if provided previously or else filename not same will re-download. Not recommend to use -c at all.') 
     arg_parser.add_argument('-es', '--exclude-section', dest='exclude_section', action='store_true', help='Exclude sections if download from username or board.')
     arg_parser.add_argument('-ps', '--https-proxy', help='Set proxy for https.')
     arg_parser.add_argument('-p', '--http-proxy', help='Set proxy for http.')
@@ -1481,12 +1526,12 @@ def run_direct_main():
         return quit( ['You type redundant options: ' + ' '.join(remaining)
             , 'Please check your command or --help to see options manual.' ])
 
-    if not args.path:
+    if not args.update_all and not args.path:
         args.path = input('Username/Boardname/Section or Link: ').strip()
 
     return run_library_main(args.path, args.dir, args.thread_max, args.cut
                             , args.board_timestamp, args.log_timestamp
-                            , args.force, args.rescrape, args.exclude_section
+                            , args.force, args.exclude_section, args.rescrape, args.update_all
                             , args.https_proxy, args.http_proxy)
     
 
