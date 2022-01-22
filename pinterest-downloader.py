@@ -1256,6 +1256,7 @@ def update_all( arg_thread_max :int, arg_cut :int, arg_rescrape :bool):
         imgs_f.extend( [os.path.join(root, _) for _ in files if (_ == 'urls-pinterest-downloader.urls') ] )
 
     urls_map = {}
+    cd_back_fixed_range = (2, 3, 4)
     for f in imgs_f:
         r = open(f, "r")
         input_url = None
@@ -1267,6 +1268,9 @@ def update_all( arg_thread_max :int, arg_cut :int, arg_rescrape :bool):
                 folder_url = line.split('Folder URL: ')[1].strip()
             if input_url and folder_url:
                 cd_back_count = len(folder_url.split('https://www.pinterest.com/')[1].split('/'))
+                if cd_back_count not in cd_back_fixed_range:
+                    return quit( ['Input url: ' + input_url + '\nFolder url: ' + folder_url
+                        , 'Somthing is not right. Please report this issue at https://github.com/limkokhole/pinterest-downloader/issues , thanks.'])
                 dir_origin = os.path.realpath( os.path.join(f, '../'*cd_back_count ) )
                 if dir_origin in urls_map:
                     #print(urls_map[dir_origin][2], input_url, folder_url)
