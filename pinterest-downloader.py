@@ -230,7 +230,7 @@ def get_pin_info(pin_id, arg_timestamp_log, url_path, arg_force_update, arg_dir,
         try:
             r = PIN_SESSION.get('https://www.pinterest.com/pin/{}/'.format(pin_id), timeout=120)
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
-            print('[E] Failed. Retry after 5 seconds...')
+            print('[E1][pin] Failed. Retry after 5 seconds...')
             time.sleep(5)
             continue
         root = html.fromstring(r.content)
@@ -240,7 +240,7 @@ def get_pin_info(pin_id, arg_timestamp_log, url_path, arg_force_update, arg_dir,
             scripts = root.xpath('//script/text()')
             break
         except IndexError: #list index out of range
-            print('[E] Failed. Retry after 5 seconds...')
+            print('[E2][pin] Failed. Retry after 5 seconds...')
             time.sleep(5)
             attempt+=1
 
@@ -1249,7 +1249,8 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
 
 
 def update_all( arg_thread_max :int, arg_cut :int, arg_rescrape :bool):
-    bk_cwd = os.getcwd()
+    bk_cwd = os.path.abspath(os.getcwd())
+    cwd_component_total = len(PurePath(os.path.abspath(bk_cwd)).parts[:])
     imgs_f = []
     for root, dirs, files in os.walk(bk_cwd):
         #print('#r: ' + repr(root) + ' #d: ' + repr(dirs) + ' #f: ' + repr(files))
@@ -1269,9 +1270,16 @@ def update_all( arg_thread_max :int, arg_cut :int, arg_rescrape :bool):
             if input_url and folder_url:
                 cd_back_count = len(folder_url.split('https://www.pinterest.com/')[1].split('/'))
                 if cd_back_count not in cd_back_fixed_range:
-                    return quit( ['Input url: ' + input_url + '\nFolder url: ' + folder_url
+                    return quit( ['[E1][-ua] Input url: ' + input_url + '\nFolder url: ' + folder_url
                         , 'Somthing is not right. Please report this issue at https://github.com/limkokhole/pinterest-downloader/issues , thanks.'])
-                dir_origin = os.path.realpath( os.path.join(f, '../'*cd_back_count ) )
+                dir_origin = os.path.abspath( os.path.join(f, '../'*cd_back_count ) )
+                dir_split = PurePath(dir_origin).parts[:]
+                #print(dir_split)
+                # Security checking to avoid travel to parent of current directory
+                if len(dir_split) < cwd_component_total: 
+                    return quit( ['[E2][-ua] Input url: ' + input_url + '\nFolder url: ' + folder_url
+                        + '\nf: ' + f + '\ncd_back_count: ' + str(cd_back_count) +  '\ndir_origin: ' + dir_origin + '\ncwd: ' + bk_cwd + '\nlen(dir_split): ' + str(len(dir_split)) + '\ncwd_component_total: ' + str(cwd_component_total)
+                        , 'Somthing is not right. Please report this issue at https://github.com/limkokhole/pinterest-downloader/issues , thanks.'])
                 if dir_origin in urls_map:
                     #print(urls_map[dir_origin][2], input_url, folder_url)
                     if cd_back_count < urls_map[dir_origin][1]: # cd_back_count: 4 means section, 3 means board, 2 means username
@@ -1288,7 +1296,7 @@ def update_all( arg_thread_max :int, arg_cut :int, arg_rescrape :bool):
         print('\nUpdating [ ' + str(i+1) + ' / ' + total_str + ' ] \nChange to directory: ' + str(dir_origin) + ' \nURL: ' + str(input_url))
         os.chdir(dir_origin)
         #ime.sleep(1)
-        run_library_main(input_url, '.',  arg_thread_max, arg_cut, False, False, False, False, arg_rescrape, False, None, None)
+        #run_library_main(input_url, '.',  arg_thread_max, arg_cut, False, False, False, False, arg_rescrape, False, None, None)
 
 
 # Caller script example:
