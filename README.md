@@ -58,13 +58,14 @@ Download all images/videos from Pinterest user/board/section.
                             write to log.
       -f, --force           Force re-download even if image already exist.
                             Normally used with -rs
-      -rs, --re-scrape      Default is only fetch new images since latest Pin ID
-                            image to speed up update process. This option disable
-                            that behavior and re-scrape all, use it when you feel
-                            missing images somewhere or incomplete download. This
-                            issue is because Pinterest only lists reordered as you
-                            see in the webpage which affects sort by time/PinID
-                            trick.
+      -rs, --re-scrape      Default is only fetch new images since latest(highest)
+                           Pin ID local image to speed up update process. This
+                           option disable that behavior and re-scrape all, use it
+                           when you feel missing images somewhere or incomplete
+                           download. This issue is because Pinterest only lists
+                           reordered as you see in the webpage which possible
+                           newer images reorder below local highest Pin ID image
+                           and missed unless fetch all pages.
       -es, --exclude-section
                                 Exclude sections if download from username or board.
       -ps HTTPS_PROXY, --https-proxy HTTPS_PROXY

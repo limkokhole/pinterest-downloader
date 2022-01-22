@@ -1274,9 +1274,9 @@ def main():
         Note: Pin id without Title/Description/Link/Metadata/Created_at will not write to log.')
     arg_parser.add_argument('-f', '--force', action='store_true', help='Force re-download even if image already exist. Normally used with -rs')
     # Need reverse images order(previously is latest to oldest) to avoid abort this need re-download in-between missing images.
-    arg_parser.add_argument('-rs', '--re-scrape', dest='rescrape', action='store_true', help='Default is only fetch new images since latest Pin ID image to speed up update process.\n\
+    arg_parser.add_argument('-rs', '--re-scrape', dest='rescrape', action='store_true', help='Default is only fetch new images since latest(highest) Pin ID local image to speed up update process.\n\
         This option disable that behavior and re-scrape all, use it when you feel missing images somewhere or incomplete download.\n\
-        This issue is because Pinterest only lists reordered as you see in the webpage which affects sort by time/PinID trick.') 
+        This issue is because Pinterest only lists reordered as you see in the webpage which possible newer images reorder below local highest Pin ID image and missed unless fetch all pages.') 
     arg_parser.add_argument('-es', '--exclude-section', dest='exclude_section', action='store_true', help='Exclude sections if download from username or board.')
     arg_parser.add_argument('-ps', '--https-proxy', help='Set proxy for https.')
     arg_parser.add_argument('-p', '--http-proxy', help='Set proxy for http.')
