@@ -152,3 +152,10 @@ Download all images/videos from Pinterest user/board/section.
     [ 5 ] Pin Id: 566538828111292039
 
     Description: "Apple Mac"
+
+
+### You can also use another python script to run, e.g.:
+    import importlib
+    pin_dl = importlib.import_module('pinterest-downloader')
+    pin_dl.run_library_main('antonellomiglio/computer', '.', 0, -1, False, False, False, False, False, None, None)
+
