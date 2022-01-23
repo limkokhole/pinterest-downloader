@@ -69,7 +69,7 @@ Download all images/videos from Pinterest user/board/section.
                            and missed unless fetch all pages.
       -ua, --update-all     Update all folders in current directory recursively
                            based on theirs urls-pinterest-downloader.urls.
-                           Options other than -c, -j, and -rs will ignore. -c
+                           Options other than -c, -j, -rs, -ps/p will ignore. -c
                            must same if provided previously or else filename not
                            same will re-download. Not recommend to use -c at all.
       -es, --exclude-section
