@@ -1285,12 +1285,18 @@ def update_all( arg_thread_max :int, arg_cut :int, arg_rescrape :bool
                 dir_split = PurePath(dir_origin).parts[:]
                 # Safeguard to avoid travel to parent of current directory
                 if len(dir_split) < cwd_component_total: 
-                    cprint(''.join([ HIGHER_YELLOW, '%s' % ('\n' + 'Update from parent directory of current directory is forbidden. Skipped.\nInput url: ' 
+                    cprint(''.join([ HIGHER_YELLOW, '%s' % ('\n' + 'Update from parent directory of current directory is forbidden. Skipped.\n'
+                        + 'You should cd to parent directory to update this folder.\nInput url: '
                         + input_url + '\nFolder url: ' + folder_url
-                        + '\nurls file: ' + f + '\ncd back count: ' + str(cd_back_count) +  '\ndir origin: ' 
-                        + dir_origin + '\ncwd: ' + bk_cwd + '\ndir origin len: ' + str(len(dir_split)) 
-                        + '\ncwd component total: ' + str(cwd_component_total) + '\n\n') ])
-                        , attrs=BOLD_ONLY, end='' )
+                        + '\nurls file: ' + f + '\ncd back steps: ' + str(cd_back_count) +  '\nParent directory: ' 
+                        + dir_origin + '\nCurrent directory: ' + bk_cwd + '\n\n') ]))
+                    # geek log:
+                    #cprint(''.join([ HIGHER_YELLOW, '%s' % ('\n' + 'Update from parent directory of current directory is forbidden. Skipped.\nInput url: ' 
+                    #    + input_url + '\nFolder url: ' + folder_url
+                    #    + '\nurls file: ' + f + '\ncd back count: ' + str(cd_back_count) +  '\ndir origin: ' 
+                    #    + dir_origin + '\ncwd: ' + bk_cwd + '\ndir origin len: ' + str(len(dir_split)) 
+                    #    + '\ncwd component total: ' + str(cwd_component_total) + '\n\n') ])
+                    #    , attrs=BOLD_ONLY, end='' )
                     break
                 if dir_origin in urls_map:
                     # cd_back_count: 3 means section, 2 means board, 1 means username
@@ -1327,7 +1333,7 @@ def update_all( arg_thread_max :int, arg_cut :int, arg_rescrape :bool
                 continue
             #if info['cd'] == 2:
             #    print('THIS board can use bcoz no username!')
-            print('\n' + ANSI_BLUE + '[U] Updating [ ' + str(real_run_index) + ' / ' + str(pre_calc_total) + ' ] \n' + ANSI_END_COLOR + ANSI_BLUE + '[U] Changed to directory: ' + str(dir_origin) + ANSI_END_COLOR)
+            print('\n' + ANSI_BLUE + '[U] Updating [ ' + str(real_run_index) + ' / ' + str(pre_calc_total) + ' ] \n' + ANSI_END_COLOR + ANSI_BLUE + '[U] Changed to directory: ' + str(dir_origin).rstrip(os.sep) + os.sep + ANSI_END_COLOR)
             real_run_index+=1
             input_url = info['url']
             #print('run URL:' + input_url)
