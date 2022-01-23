@@ -1248,8 +1248,8 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
     print()
 
 
-def update_all( arg_thread_max :int, arg_cut :int, arg_exclude_section :bool, arg_rescrape :bool):
-    return quit('--update-all temporary disabled.')
+def update_all( arg_thread_max :int, arg_cut :int, arg_rescrape :bool):
+    #return quit('--update-all temporary disabled.')
     bk_cwd = os.path.abspath(os.getcwd())
     cwd_component_total = len(PurePath(os.path.abspath(bk_cwd)).parts[:])
     imgs_f = []
@@ -1258,7 +1258,7 @@ def update_all( arg_thread_max :int, arg_cut :int, arg_exclude_section :bool, ar
         imgs_f.extend( [os.path.join(root, _) for _ in files if (_ == 'urls-pinterest-downloader.urls') ] )
 
     urls_map = {}
-    cd_back_fixed_range = (2, 3, 4)
+    cd_back_fixed_range = (1, 2, 3)
     for f in imgs_f:
         r = open(f, "r")
         input_url = None
@@ -1270,14 +1270,14 @@ def update_all( arg_thread_max :int, arg_cut :int, arg_exclude_section :bool, ar
             elif l_strip.startswith('Folder URL: '):
                 folder_url = l_strip.split('Folder URL: ')[1].strip()
             if input_url and folder_url:
-                cd_back_count = len(folder_url.split('/')[3:])
+                cd_back_count = len(folder_url.split('/')[3:]) -1 # -1 is trailing '/'
                 if cd_back_count not in cd_back_fixed_range:
                     return quit( ['[E1][-ua] Input url: ' + input_url + '\nFolder url: ' + folder_url
                         , 'Something is not right. Please report this issue at https://github.com/limkokhole/pinterest-downloader/issues , thanks.'])
-                dir_origin = os.path.abspath( os.path.join(f, '../'*cd_back_count ) )
+                # +1 is the upper path to run script previously
+                dir_origin = os.path.abspath( os.path.join(f, '../'*(cd_back_count+1) ) )
                 dir_split = PurePath(dir_origin).parts[:]
-                #print(dir_split)
-                # Security checking to avoid travel to parent of current directory
+                # Safeguard to avoid travel to parent of current directory
                 if len(dir_split) < cwd_component_total: 
                     cprint(''.join([ HIGHER_YELLOW, '%s' % ('\n' + 'Update from parent directory of current directory is forbidden. Skipped.\nInput url: ' 
                         + input_url + '\nFolder url: ' + folder_url
@@ -1287,26 +1287,53 @@ def update_all( arg_thread_max :int, arg_cut :int, arg_exclude_section :bool, ar
                         , attrs=BOLD_ONLY, end='' )
                     break
                 if dir_origin in urls_map:
-                    print( 'exis: ' + repr(urls_map[dir_origin]) )
-                    print( 'curr: ' +  repr((input_url, cd_back_count)) )
-                    print
-                    #print(urls_map[dir_origin][2], input_url, folder_url)
-                    # cd_back_count: 4(extra trailing /) means section, 3 means board, 2 means username
-                    if cd_back_count < urls_map[dir_origin][1]:
-                        urls_map[dir_origin] = (input_url, cd_back_count)
-                    #else:
-                    #    print('Skip child')
+                    # cd_back_count: 3 means section, 2 means board, 1 means username
+                    # If input url is board url means is acceptable query that board regardless of username incldued it
+                    # ... bcoz is really type arg board url to log that time.
+                    if cd_back_count in (2, 3): # section separate scrape, not by username, while board check below
+                        urls_map[dir_origin]['info'].append(  {'url': folder_url, 'cd': cd_back_count} )
+                        #print(urls_map[dir_origin])
+                    elif cd_back_count  == 1:  
+                        urls_map[dir_origin]['username'] = True
+                    
                 else:
-                    urls_map[dir_origin] = (input_url, cd_back_count)
+                    urls_map[dir_origin] = {'info': [ {'url': input_url, 'cd': cd_back_count} ], 'username': True if (cd_back_count == 1) else False}
                 break # Only read headers
 
-    total_str = str(len(urls_map))
     bk_cwd = os.getcwd()
-    for i, (dir_origin, (input_url, _)) in enumerate(urls_map.items()):
-        print('\nUpdating [ ' + str(i+1) + ' / ' + total_str + ' ] \nChange to directory: ' + str(dir_origin) + ' \nURL: ' + str(input_url))
+
+    pre_calc_total = 0
+    for i, (dir_origin, map_d) in enumerate(urls_map.items()):
+        got_username = map_d['username']
+        for info in map_d['info']:
+            if got_username and info['cd'] == 2:
+                #print('Skip board ' + info['url'] + ' since got username already.')
+                continue
+            pre_calc_total+=1
+    real_run_index = 1
+    for i, (dir_origin, map_d) in enumerate(urls_map.items()):
         os.chdir(dir_origin)
-        #ime.sleep(1)
-        #run_library_main(input_url, '.',  arg_thread_max, arg_cut, False, False, False, arg_exclude_section, arg_rescrape, False, None, None)
+        got_username = map_d['username']
+        for info in map_d['info']:
+            if got_username and info['cd'] == 2:
+                #print('Skip board ' + info['url'] + ' since got username already.')
+                continue
+            #if info['cd'] == 2:
+            #    print('THIS board can use bcoz no username!')
+            print('\n\x1b[1;44m[U] Updating [ ' + str(real_run_index) + ' / ' + str(pre_calc_total) + ' ] \n\x1b[0m\x1b[K\x1b[1;44m[U] Changed to directory: ' + str(dir_origin) + '\x1b[0m\x1b[K')
+            real_run_index+=1
+            input_url = info['url']
+            #print('run URL:' + input_url)
+            while 1:
+                try:
+                    run_library_main(input_url, '.',  arg_thread_max, arg_cut, False, False, False, False, arg_rescrape, False, None, None)
+                    break
+                except requests.exceptions.ReadTimeout:
+                    cprint(''.join([ HIGHER_RED, '{}'.format('\n[' + x_tag + '] [U] Suddenly not able to connect. Please check your network.\n') ]), attrs=BOLD_ONLY, end='' )
+                    time.sleep(5)
+                except requests.exceptions.ConnectionError:
+                    cprint(''.join([ HIGHER_RED, '{}'.format('\n[' + x_tag + '] [U] Not able to connect. Please check your network.\n') ]), attrs=BOLD_ONLY, end='' )
+                    time.sleep(5)
 
 
 # Caller script example:
@@ -1319,7 +1346,7 @@ def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :
     , arg_https_proxy :str, arg_http_proxy :str):
 
     if arg_update_all:
-        return update_all(arg_thread_max, arg_cut, arg_exclude_section, arg_rescrape)
+        return update_all(arg_thread_max, arg_cut, arg_rescrape)
 
     start_time = int(time.time())
 
