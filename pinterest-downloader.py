@@ -1248,7 +1248,8 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
     print()
 
 
-def update_all( arg_thread_max :int, arg_cut :int, arg_rescrape :bool):
+def update_all( arg_thread_max :int, arg_cut :int, arg_exclude_section :bool, arg_rescrape :bool):
+    return quit('--update-all temporary disabled.')
     bk_cwd = os.path.abspath(os.getcwd())
     cwd_component_total = len(PurePath(os.path.abspath(bk_cwd)).parts[:])
     imgs_f = []
@@ -1286,6 +1287,9 @@ def update_all( arg_thread_max :int, arg_cut :int, arg_rescrape :bool):
                         , attrs=BOLD_ONLY, end='' )
                     break
                 if dir_origin in urls_map:
+                    print( 'exis: ' + repr(urls_map[dir_origin]) )
+                    print( 'curr: ' +  repr((input_url, cd_back_count)) )
+                    print
                     #print(urls_map[dir_origin][2], input_url, folder_url)
                     # cd_back_count: 4(extra trailing /) means section, 3 means board, 2 means username
                     if cd_back_count < urls_map[dir_origin][1]:
@@ -1302,7 +1306,7 @@ def update_all( arg_thread_max :int, arg_cut :int, arg_rescrape :bool):
         print('\nUpdating [ ' + str(i+1) + ' / ' + total_str + ' ] \nChange to directory: ' + str(dir_origin) + ' \nURL: ' + str(input_url))
         os.chdir(dir_origin)
         #ime.sleep(1)
-        run_library_main(input_url, '.',  arg_thread_max, arg_cut, False, False, False, False, arg_rescrape, False, None, None)
+        #run_library_main(input_url, '.',  arg_thread_max, arg_cut, False, False, False, arg_exclude_section, arg_rescrape, False, None, None)
 
 
 # Caller script example:
@@ -1315,7 +1319,7 @@ def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :
     , arg_https_proxy :str, arg_http_proxy :str):
 
     if arg_update_all:
-        return update_all(arg_thread_max, arg_cut, arg_rescrape)
+        return update_all(arg_thread_max, arg_cut, arg_exclude_section, arg_rescrape)
 
     start_time = int(time.time())
 
