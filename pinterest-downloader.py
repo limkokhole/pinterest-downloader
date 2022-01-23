@@ -885,7 +885,7 @@ def write_log(arg_timestamp_log, url_path, shortform, save_dir, images, pin, arg
                     for l in index_line:
                         existing_indexes.append(l.split('[ ')[1].split(' ] Pin Id: ')[1].strip())
             except (FileNotFoundError, OSError, KeyError, TypeError):
-                cprint(''.join([ HIGHER_YELLOW, '%s' % ('\nWrite log increment from last log stored index failed with -u. Fallback to -lt\n\n') ]), attrs=BOLD_ONLY, end='' )  
+                cprint(''.join([ HIGHER_YELLOW, '%s' % ('\nWrite log increment from last log stored index failed. Fallback to -lt\n\n') ]), attrs=BOLD_ONLY, end='' )  
                 log_timestamp = 'log-pinterest-downloader_' + datetime.now().strftime('%Y-%m-%d %H.%M.%S')
                 log_path = os.path.join(save_dir, '{}'.format( sanitize(log_timestamp) + '.log' ))
                 with open(log_path, 'w') as f: # Refer below else:
