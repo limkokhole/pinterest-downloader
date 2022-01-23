@@ -68,10 +68,12 @@ Download all images/videos from Pinterest user/board/section.
                            newer images reorder below local highest Pin ID image
                            and missed unless fetch all pages.
       -ua, --update-all     Update all folders in current directory recursively
-                           based on theirs urls-pinterest-downloader.urls.
-                           Options other than -c, -j, -rs, -ps/p will ignore. -c
-                           must same if provided previously or else filename not
-                           same will re-download. Not recommend to use -c at all.
+                           based on theirs urls-pinterest-downloader.urls. New
+                           section will not downlaod. New board may download if
+                           previously download by username Options other than -c,
+                           -j, -rs, -ps/p will ignore. -c must same if provided
+                           previously or else filename not same will re-download.
+                           Not recommend to use -c at all.
       -es, --exclude-section
                                 Exclude sections if download from username or board.
       -ps HTTPS_PROXY, --https-proxy HTTPS_PROXY
@@ -129,7 +131,7 @@ Download all images/videos from Pinterest user/board/section.
     Input URL: https://www.pinterest.com/antonellomiglio/computer/
     Folder URL: https://www.pinterest.com/antonellomiglio/computer/
 
-##### Or log-pinterest-downloader.log (only exist if any folder item contains title/description/link/metadata).
+##### Or log-pinterest-downloader.log (only exist if any folder item contains title/description/link/metadata/date).
     xb@dnxb:~/Downloads/pinterest/pinterest-downloader$ head -28 comp/antonellomiglio/Computer/log-pinterest-downloader.log 
     Pinterest Downloader: Version 1.9
 

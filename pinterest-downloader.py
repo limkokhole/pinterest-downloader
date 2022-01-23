@@ -1255,7 +1255,6 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
 def update_all( arg_thread_max :int, arg_cut :int, arg_rescrape :bool
     , arg_https_proxy :str, arg_http_proxy :str):
 
-    #return quit('--update-all temporary disabled.')
     bk_cwd = os.path.abspath(os.getcwd())
     cwd_component_total = len(PurePath(os.path.abspath(bk_cwd)).parts[:])
     imgs_f = []
@@ -1286,17 +1285,10 @@ def update_all( arg_thread_max :int, arg_cut :int, arg_rescrape :bool
                 # Safeguard to avoid travel to parent of current directory
                 if len(dir_split) < cwd_component_total: 
                     cprint(''.join([ HIGHER_YELLOW, '%s' % ('\n' + 'Update from parent directory of current directory is forbidden. Skipped.\n'
-                        + 'You should cd to parent directory to update this folder.\nInput url: '
-                        + input_url + '\nFolder url: ' + folder_url
-                        + '\nurls file: ' + f + '\ncd back steps: ' + str(cd_back_count) +  '\nParent directory: ' 
-                        + dir_origin + '\nCurrent directory: ' + bk_cwd + '\n\n') ]))
-                    # geek log:
-                    #cprint(''.join([ HIGHER_YELLOW, '%s' % ('\n' + 'Update from parent directory of current directory is forbidden. Skipped.\nInput url: ' 
-                    #    + input_url + '\nFolder url: ' + folder_url
-                    #    + '\nurls file: ' + f + '\ncd back count: ' + str(cd_back_count) +  '\ndir origin: ' 
-                    #    + dir_origin + '\ncwd: ' + bk_cwd + '\ndir origin len: ' + str(len(dir_split)) 
-                    #    + '\ncwd component total: ' + str(cwd_component_total) + '\n\n') ])
-                    #    , attrs=BOLD_ONLY, end='' )
+                        + 'You should cd to parent directory to update this folder:' 
+                        + '\nurls file: ' + f + '\nInput url: '+ input_url + '\nFolder url: ' + folder_url
+                        + '\nParent directory: ' + dir_origin 
+                        + '\nCurrent directory: ' + bk_cwd + '\n\n') ]))
                     break
                 if dir_origin in urls_map:
                     # cd_back_count: 3 means section, 2 means board, 1 means username
@@ -1312,8 +1304,6 @@ def update_all( arg_thread_max :int, arg_cut :int, arg_rescrape :bool
                 else:
                     urls_map[dir_origin] = {'info': [ {'url': input_url, 'cd': cd_back_count} ], 'username': True if (cd_back_count == 1) else False}
                 break # Only read headers
-
-    bk_cwd = os.getcwd()
 
     pre_calc_total = 0
     for i, (dir_origin, map_d) in enumerate(urls_map.items()):
@@ -1575,6 +1565,7 @@ def run_direct_main():
         This option disable that behavior and re-scrape all, use it when you feel missing images somewhere or incomplete download.\n\
         This issue is because Pinterest only lists reordered as you see in the webpage which possible newer images reorder below local highest Pin ID image and missed unless fetch all pages.') 
     arg_parser.add_argument('-ua', '--update-all', dest='update_all', action='store_true', help='Update all folders in current directory recursively based on theirs urls-pinterest-downloader.urls.\n\
+        New section will not downlaod. New board may download if previously download by username\n\
         Options other than -c, -j, -rs, -ps/p will ignore.\n\
         -c must same if provided previously or else filename not same will re-download. Not recommend to use -c at all.') 
     arg_parser.add_argument('-es', '--exclude-section', dest='exclude_section', action='store_true', help='Exclude sections if download from username or board.')
