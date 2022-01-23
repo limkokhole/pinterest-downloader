@@ -1352,7 +1352,7 @@ def update_all( arg_thread_max :int, arg_cut :int, arg_rescrape :bool
 # Caller script example:
 # import importlib
 # pin_dl = importlib.import_module('pinterest-downloader')
-# pin_dl.run_library_main('antonellomiglio/computer', '.', 0, -1, False, False, False, False, False, None, None)
+# pin_dl.run_library_main('antonellomiglio/computer', '.', 0, -1, False, False, False, False, False, False, None, None)
 def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :int
     , arg_board_timestamp :bool, arg_log_timestamp :bool
     , arg_force :bool, arg_exclude_section :bool, arg_rescrape :bool, arg_update_all :bool
