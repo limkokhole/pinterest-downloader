@@ -1288,7 +1288,7 @@ def update_all( arg_thread_max :int, arg_cut :int, arg_rescrape :bool):
                     break
                 if dir_origin in urls_map:
                     # cd_back_count: 3 means section, 2 means board, 1 means username
-                    # section separate scrape, not by username/board, while board filyter by username below
+                    # section separate scrape, not by username/board, while board filter by username below
                     # -es force later so no section repeat. 
                     # So not included new created section(new board possible if got username)
                     if cd_back_count in (2, 3):
