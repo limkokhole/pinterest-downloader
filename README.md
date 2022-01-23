@@ -70,10 +70,10 @@ Download all images/videos from Pinterest user/board/section.
       -ua, --update-all     Update all folders in current directory recursively
                            based on theirs urls-pinterest-downloader.urls. New
                            section will not downlaod. New board may download if
-                           previously download by username Options other than -c,
-                           -j, -rs, -ps/p will ignore. -c must same if provided
-                           previously or else filename not same will re-download.
-                           Not recommend to use -c at all.
+                           previously download by username. Options other than
+                           -c, -j, -rs, -ps/p will ignore. -c must same if
+                           provided previously or else filename not same will re-
+                           download. Not recommend to use -c at all.
       -es, --exclude-section
                                 Exclude sections if download from username or board.
       -ps HTTPS_PROXY, --https-proxy HTTPS_PROXY

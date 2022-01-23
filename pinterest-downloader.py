@@ -1565,7 +1565,7 @@ def run_direct_main():
         This option disable that behavior and re-scrape all, use it when you feel missing images somewhere or incomplete download.\n\
         This issue is because Pinterest only lists reordered as you see in the webpage which possible newer images reorder below local highest Pin ID image and missed unless fetch all pages.') 
     arg_parser.add_argument('-ua', '--update-all', dest='update_all', action='store_true', help='Update all folders in current directory recursively based on theirs urls-pinterest-downloader.urls.\n\
-        New section will not downlaod. New board may download if previously download by username\n\
+        New section will not downlaod. New board may download if previously download by username.\n\
         Options other than -c, -j, -rs, -ps/p will ignore.\n\
         -c must same if provided previously or else filename not same will re-download. Not recommend to use -c at all.') 
     arg_parser.add_argument('-es', '--exclude-section', dest='exclude_section', action='store_true', help='Exclude sections if download from username or board.')
