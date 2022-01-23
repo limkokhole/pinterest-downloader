@@ -45,9 +45,13 @@ if ('window' in plat) or plat.startswith('win'):
     # Even though ANSI escape sequence can be enable via `REG ADD HKCU\CONSOLE /f /v VirtualTerminalLevel /t REG_DWORD /d 1`
     # But since this is not big deal to hide logo testing for this project, so no need.
     ANSI_CLEAR = '\r' # Default cmd settings not support ANSI sequence
+    ANSI_END_COLOR = ''
+    ANSI_BLUE = ''
 else:
     IS_WIN = False
     ANSI_CLEAR = '\r\x1b[0m\x1b[K'
+    ANSI_END_COLOR = '\x1b[0m\x1b[K'
+    ANSI_BLUE = '\x1b[1;44m'
 try:
     import readline #to make input() edit-able by LEFT key
 except ModuleNotFoundError:
@@ -1321,7 +1325,7 @@ def update_all( arg_thread_max :int, arg_cut :int, arg_rescrape :bool):
                 continue
             #if info['cd'] == 2:
             #    print('THIS board can use bcoz no username!')
-            print('\n\x1b[1;44m[U] Updating [ ' + str(real_run_index) + ' / ' + str(pre_calc_total) + ' ] \n\x1b[0m\x1b[K\x1b[1;44m[U] Changed to directory: ' + str(dir_origin) + '\x1b[0m\x1b[K')
+            print('\n' + ANSI_BLUE + '[U] Updating [ ' + str(real_run_index) + ' / ' + str(pre_calc_total) + ' ] \n' + ANSI_END_COLOR + ANSI_BLUE + '[U] Changed to directory: ' + str(dir_origin) + '\x1b[0m\x1b[K')
             real_run_index+=1
             input_url = info['url']
             #print('run URL:' + input_url)
