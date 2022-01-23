@@ -34,7 +34,7 @@ __status__ = 'Production'
 
 # Note: Support python 3 but not python 2
 
-import sys, os, re, traceback
+import sys, os, traceback
 from pathlib import PurePath
 import platform
 plat = platform.system().lower()
@@ -861,6 +861,7 @@ def write_log(arg_timestamp_log, url_path, shortform, save_dir, images, pin, arg
 
         with open(log_url_path, 'w') as f:
             f.write('Pinterest Downloader: Version ' + str(__version__)  + '\n\n') # Easy to recognize if future want to change something
+            # Ensure -ua same parsing format
             f.write('Input URL: https://www.pinterest.com/' + url_path.rstrip('/')  + '/\n') # Reuse/refer when want to update
             if shortform: # single pin no need
                 f.write('Folder URL: https://www.pinterest.com/' + shortform.rstrip('/') + '/\n\n') # Reuse/refer when want to update specific folder only
@@ -1158,23 +1159,22 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
                     if img['id'].isdigit():
                         img_curr = img['id']
                         if img_prev and (int(img_curr) > int(img_prev)):
-                            cprint(''.join([ HIGHER_YELLOW, '%s' % ('\n[W] This images list is not sorted(Due to user reorder or alphanumeric pin ID), fallback to -rs for this list.\n\n') ]), attrs=BOLD_ONLY, end='' )
+                            cprint(''.join([ HIGHER_YELLOW, '%s' % ('\n[W] This images list is not sorted(Due to user reorder), fallback to -rs for this list.\n\n') ]), attrs=BOLD_ONLY, end='' )
                             sorted_api = False
                             reach_lastest_pin = False
                             if on_hold_break:
                                 imgs_round = data['resource_response']['data'] # replaced back below
-                            break
-                        if on_hold_break: # Need check above 2 imgs first, test with delete 1 image in unsorted list
                             break
                         if latest_pin == img_curr:
                             #print('\nAlready scroll to latest downloaded pin. Break.')
                             #print('bookmark: ' + repr(bookmark))
                             imgs_round = imgs_round[:img_round_i]
                             reach_lastest_pin = True
+                            # Next check all 25 items in current page to know owner recently has reorder habit or not
                             on_hold_break = True
                         img_prev = img_curr
                     else:
-                        cprint(''.join([ HIGHER_YELLOW, '%s' % ('\n[W] This images list is not sorted(Due to user reorder or alphanumeric pin ID), fallback to -rs for this list.\n\n') ]), attrs=BOLD_ONLY, end='' )
+                        cprint(''.join([ HIGHER_YELLOW, '%s' % ('\n[W] This images list is not sorted(Due to alphanumeric pin ID), fallback to -rs for this list.\n\n') ]), attrs=BOLD_ONLY, end='' )
                         sorted_api = False
                         reach_lastest_pin = False
                         imgs_round = data['resource_response']['data'] # replaced back above
@@ -1263,32 +1263,38 @@ def update_all( arg_thread_max :int, arg_cut :int, arg_rescrape :bool):
         input_url = None
         folder_url = None
         for line in r:
-            if re.search('^Input URL: ', line):
-                input_url = line.split('Input URL: ')[1].strip()
-            elif re.search('^Folder URL: ', line):
-                folder_url = line.split('Folder URL: ')[1].strip()
+            l_strip = line.strip()
+            if l_strip.startswith('Input URL: '): #re.search('^Input URL: ', line):
+                input_url = l_strip.split('Input URL: ')[1].strip()
+            elif l_strip.startswith('Folder URL: '):
+                folder_url = l_strip.split('Folder URL: ')[1].strip()
             if input_url and folder_url:
-                cd_back_count = len(folder_url.split('https://www.pinterest.com/')[1].split('/'))
+                cd_back_count = len(folder_url.split('/')[3:])
                 if cd_back_count not in cd_back_fixed_range:
                     return quit( ['[E1][-ua] Input url: ' + input_url + '\nFolder url: ' + folder_url
-                        , 'Somthing is not right. Please report this issue at https://github.com/limkokhole/pinterest-downloader/issues , thanks.'])
+                        , 'Something is not right. Please report this issue at https://github.com/limkokhole/pinterest-downloader/issues , thanks.'])
                 dir_origin = os.path.abspath( os.path.join(f, '../'*cd_back_count ) )
                 dir_split = PurePath(dir_origin).parts[:]
                 #print(dir_split)
                 # Security checking to avoid travel to parent of current directory
                 if len(dir_split) < cwd_component_total: 
-                    return quit( ['[E2][-ua] Input url: ' + input_url + '\nFolder url: ' + folder_url
-                        + '\nf: ' + f + '\ncd_back_count: ' + str(cd_back_count) +  '\ndir_origin: ' + dir_origin + '\ncwd: ' + bk_cwd + '\nlen(dir_split): ' + str(len(dir_split)) + '\ncwd_component_total: ' + str(cwd_component_total)
-                        , 'Somthing is not right. Please report this issue at https://github.com/limkokhole/pinterest-downloader/issues , thanks.'])
+                    cprint(''.join([ HIGHER_YELLOW, '%s' % ('\n' + 'Update from parent directory of current directory is forbidden. Skipped.\nInput url: ' 
+                        + input_url + '\nFolder url: ' + folder_url
+                        + '\nurls file: ' + f + '\ncd back count: ' + str(cd_back_count) +  '\ndir origin: ' 
+                        + dir_origin + '\ncwd: ' + bk_cwd + '\ndir origin len: ' + str(len(dir_split)) 
+                        + '\ncwd component total: ' + str(cwd_component_total) + '\n\n') ])
+                        , attrs=BOLD_ONLY, end='' )
+                    break
                 if dir_origin in urls_map:
                     #print(urls_map[dir_origin][2], input_url, folder_url)
-                    if cd_back_count < urls_map[dir_origin][1]: # cd_back_count: 4 means section, 3 means board, 2 means username
+                    # cd_back_count: 4(extra trailing /) means section, 3 means board, 2 means username
+                    if cd_back_count < urls_map[dir_origin][1]:
                         urls_map[dir_origin] = (input_url, cd_back_count)
                     #else:
                     #    print('Skip child')
                 else:
                     urls_map[dir_origin] = (input_url, cd_back_count)
-                break
+                break # Only read headers
 
     total_str = str(len(urls_map))
     bk_cwd = os.getcwd()
@@ -1296,8 +1302,7 @@ def update_all( arg_thread_max :int, arg_cut :int, arg_rescrape :bool):
         print('\nUpdating [ ' + str(i+1) + ' / ' + total_str + ' ] \nChange to directory: ' + str(dir_origin) + ' \nURL: ' + str(input_url))
         os.chdir(dir_origin)
         #ime.sleep(1)
-        print('-ua temporary disabled.')
-        #run_library_main(input_url, '.',  arg_thread_max, arg_cut, False, False, False, False, arg_rescrape, False, None, None)
+        run_library_main(input_url, '.',  arg_thread_max, arg_cut, False, False, False, False, arg_rescrape, False, None, None)
 
 
 # Caller script example:
@@ -1525,7 +1530,7 @@ def run_direct_main():
     arg_parser.add_argument('-rs', '--re-scrape', dest='rescrape', action='store_true', help='Default is only fetch new images since latest(highest) Pin ID local image to speed up update process.\n\
         This option disable that behavior and re-scrape all, use it when you feel missing images somewhere or incomplete download.\n\
         This issue is because Pinterest only lists reordered as you see in the webpage which possible newer images reorder below local highest Pin ID image and missed unless fetch all pages.') 
-    arg_parser.add_argument('-ua', '--update-all', dest='update_all', action='store_true', help='Update all in current directory recursively.\n\
+    arg_parser.add_argument('-ua', '--update-all', dest='update_all', action='store_true', help='Update all folders in current directory recursively based on theirs urls-pinterest-downloader.urls.\n\
         Options other than -c, -j, and -rs will ignore.\n\
         -c must same if provided previously or else filename not same will re-download. Not recommend to use -c at all.') 
     arg_parser.add_argument('-es', '--exclude-section', dest='exclude_section', action='store_true', help='Exclude sections if download from username or board.')
