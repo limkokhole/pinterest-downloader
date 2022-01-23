@@ -1333,7 +1333,7 @@ def update_all( arg_thread_max :int, arg_cut :int, arg_rescrape :bool
             #print('run URL:' + input_url)
             while 1:
                 try:
-                    run_library_main(input_url, '.',  arg_thread_max, arg_cut, False, False, False, False, arg_rescrape, False, arg_https_proxy, arg_http_proxy)
+                    run_library_main(input_url, '.',  arg_thread_max, arg_cut, False, False, False, True, arg_rescrape, False, arg_https_proxy, arg_http_proxy)
                     break
                 except requests.exceptions.ReadTimeout:
                     cprint(''.join([ HIGHER_RED, '{}'.format('\n[' + x_tag + '] [U] Suddenly not able to connect. Please check your network.\n') ]), attrs=BOLD_ONLY, end='' )
@@ -1466,7 +1466,7 @@ def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :
                 , arg_force, arg_rescrape, arg_dir, arg_thread_max
                 , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, proxies
                 , arg_cut, arg_el, fs_f_max )
-            if sections:
+            if (not arg_exclude_section) and sections:
                 sec_c = len(sections)
                 print('[i] Trying to get ' + str(sec_c) + ' section{}'.format('s' if sec_c > 1 else ''))
                 for sec in sections:
