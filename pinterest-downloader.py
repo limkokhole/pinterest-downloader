@@ -1252,7 +1252,9 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
     print()
 
 
-def update_all( arg_thread_max :int, arg_cut :int, arg_rescrape :bool):
+def update_all( arg_thread_max :int, arg_cut :int, arg_rescrape :bool
+    , arg_https_proxy :str, arg_http_proxy :str):
+
     #return quit('--update-all temporary disabled.')
     bk_cwd = os.path.abspath(os.getcwd())
     cwd_component_total = len(PurePath(os.path.abspath(bk_cwd)).parts[:])
@@ -1331,7 +1333,7 @@ def update_all( arg_thread_max :int, arg_cut :int, arg_rescrape :bool):
             #print('run URL:' + input_url)
             while 1:
                 try:
-                    run_library_main(input_url, '.',  arg_thread_max, arg_cut, False, False, False, False, arg_rescrape, False, None, None)
+                    run_library_main(input_url, '.',  arg_thread_max, arg_cut, False, False, False, False, arg_rescrape, False, arg_https_proxy, arg_http_proxy)
                     break
                 except requests.exceptions.ReadTimeout:
                     cprint(''.join([ HIGHER_RED, '{}'.format('\n[' + x_tag + '] [U] Suddenly not able to connect. Please check your network.\n') ]), attrs=BOLD_ONLY, end='' )
@@ -1351,7 +1353,7 @@ def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :
     , arg_https_proxy :str, arg_http_proxy :str):
 
     if arg_update_all:
-        return update_all(arg_thread_max, arg_cut, arg_rescrape)
+        return update_all(arg_thread_max, arg_cut, arg_rescrape, arg_https_proxy, arg_http_proxy)
 
     start_time = int(time.time())
 
@@ -1567,7 +1569,7 @@ def run_direct_main():
         This option disable that behavior and re-scrape all, use it when you feel missing images somewhere or incomplete download.\n\
         This issue is because Pinterest only lists reordered as you see in the webpage which possible newer images reorder below local highest Pin ID image and missed unless fetch all pages.') 
     arg_parser.add_argument('-ua', '--update-all', dest='update_all', action='store_true', help='Update all folders in current directory recursively based on theirs urls-pinterest-downloader.urls.\n\
-        Options other than -c, -j, and -rs will ignore.\n\
+        Options other than -c, -j, -rs, -ps/p will ignore.\n\
         -c must same if provided previously or else filename not same will re-download. Not recommend to use -c at all.') 
     arg_parser.add_argument('-es', '--exclude-section', dest='exclude_section', action='store_true', help='Exclude sections if download from username or board.')
     arg_parser.add_argument('-ps', '--https-proxy', help='Set proxy for https.')
