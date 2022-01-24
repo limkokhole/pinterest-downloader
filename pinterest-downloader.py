@@ -222,33 +222,34 @@ def dj(j, tag=None):
 
 def get_pin_info(pin_id, arg_timestamp_log, url_path, arg_force_update, arg_dir, arg_cut, arg_el, fs_f_max, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, get_data_only):
 
-    attempt = 1
     scripts = []
-    while 1:
-        if attempt > 3:
-            if not get_data_only: # get data error show later
-                cprint(''.join([ HIGHER_RED, '%s %s%s' % ('\n[' + x_tag 
-                    + '] Get this pin id failed :', pin_id, '\n') ]), attrs=BOLD_ONLY, end='' )
-            break
+    is_success = False
+    for t in (15, 30, 40, 50, 60):
         #print('https://www.pinterest.com/pin/{}/'.format(pin_id))
         try:
-            r = PIN_SESSION.get('https://www.pinterest.com/pin/{}/'.format(pin_id), timeout=(120, 30))
+            r = PIN_SESSION.get('https://www.pinterest.com/pin/{}/'.format(pin_id), timeout=(t, t))
+            is_success = True
+            break
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
-            print('[E1][pin] Failed. Retry after 5 seconds...')
+            #print('[E1][pin] Failed. Retry after 5 seconds...')
             time.sleep(5)
-            continue
+            PIN_SESSION = get_session(0, proxies)
+
+    if is_success:
         root = html.fromstring(r.content)
         #print(r.content)
         try:
             #tag = root.xpath("//script[@id='initial-state']")[0]
             scripts = root.xpath('//script/text()')
-            break
         except IndexError: #list index out of range
-            print('[E2][pin] Failed. Retry after 5 seconds...')
-            time.sleep(5)
-            attempt+=1
+            is_success = False
 
-    #board_d = {}
+    if not is_success:
+        if not get_data_only: # get data error show later
+            cprint(''.join([ HIGHER_RED, '%s %s%s' % ('\n[' + x_tag 
+                + '] Get this pin id failed :', pin_id, '\n') ]), attrs=BOLD_ONLY, end='' )
+        return
+
     image = None
     for script in scripts:
         try:
@@ -281,29 +282,50 @@ def get_pin_info(pin_id, arg_timestamp_log, url_path, arg_force_update, arg_dir,
 def get_board_info(board_or_sec_path, exclude_section, section, board_path, proxies, retry=False):
     s = get_session(0, proxies)
 
-    #print('https://www.pinterest.com/{}/'.format(board_or_sec_path))
-    r = s.get('https://www.pinterest.com/{}/'.format(board_or_sec_path), timeout=(30, 30))
-    root = html.fromstring(r.content)
-    #print(str(r.content))
-    #tag = root.xpath("//script[@id='initial-state']")[0]
-    scripts = root.xpath('//script/text()')
-    board_d = {}
-    for script in scripts:
-        try:
-            data = json.loads(script)
-            if 'props' in data:
-                #dj(data)
-                board_d = data['props']['initialReduxState']['boards']
-                #dj(board_d)
-                board_sec_d = data['props']['initialReduxState']['boardsections']
-                #dj(board_sec_d)
-                break
-        except json.decoder.JSONDecodeError:
-            pass
-
     #dj(data, 'board main')
     boards = {}
     sections = []
+
+    is_success = False
+    #print('https://www.pinterest.com/{}/'.format(board_or_sec_path))
+    for t in (15, 30, 40, 50, 60):
+        try:
+            r = s.get('https://www.pinterest.com/{}/'.format(board_or_sec_path), timeout=(t, t))
+            is_success = True
+            break
+        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
+            #print('[E1][pin] Failed. Retry after 5 seconds...')
+            time.sleep(5)
+            s = get_session(0, proxies)
+
+    if is_success:
+        root = html.fromstring(r.content)
+        #print(str(r.content))
+        #tag = root.xpath("//script[@id='initial-state']")[0]
+        scripts = root.xpath('//script/text()')
+        board_d = {}
+        for script in scripts:
+            try:
+                data = json.loads(script)
+                if 'props' in data:
+                    #dj(data)
+                    board_d = data['props']['initialReduxState']['boards']
+                    #dj(board_d)
+                    board_sec_d = data['props']['initialReduxState']['boardsections']
+                    #dj(board_sec_d)
+                    is_success = True
+                    break
+            except json.decoder.JSONDecodeError:
+                is_success = False
+            
+    if not is_success:
+        cprint(''.join([ HIGHER_RED, '%s %s%s' % ('\n[' + x_tag 
+            + '] Get this board/section failed :', board_or_sec_path, '\n') ]), attrs=BOLD_ONLY, end='' )
+        if section:
+            return boards
+        else:
+            return boards, sections
+
 
     board_dk = list(board_d.keys())
     if section:
@@ -406,8 +428,19 @@ def fetch_boards(uname, proxies):
 
         #print('[boards] called headers: ' + repr(s.headers))
 
-        r = s.get('https://www.pinterest.com/resource/BoardsResource/get/', params=post_d, timeout=(30, 30))
-
+        is_success = False
+        for t in (15, 30, 40, 50, 60):
+            try:
+                r = s.get('https://www.pinterest.com/resource/BoardsResource/get/', params=post_d, timeout=(t, t))
+                is_success = True
+                break
+            except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
+                time.sleep(5)
+                s = get_session(1, proxies)
+        if not is_success:
+            cprint(''.join([ HIGHER_RED, '%s %s%s' % ('\n[' + x_tag 
+                + '] Get this username failed :', uname, '\n') ]), attrs=BOLD_ONLY, end='' )
+            break
         #print('[Boards url]: ' + r.url)
         data = r.json()
         #print('res data: ' + repr(data))
@@ -417,6 +450,7 @@ def fetch_boards(uname, proxies):
         except TypeError: # Normal if invalid username
             cprint(''.join([ HIGHER_RED, '%s' % ('\n[' + x_tag + '] Possible invalid username.\n\n') ]), attrs=BOLD_ONLY, end='' ) 
             break
+
     b_len = len(boards)
     print('[' + plus_tag + '] Found {} Board{}.'.format(b_len, 's' if b_len > 1 else ''))
 
@@ -1149,12 +1183,19 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
         #print(post_d)
         #print('[imgs] called headers: ' + repr(IMGS_SESSION.headers))
 
-        if section_slug:
-            r = IMGS_SESSION.get('https://www.pinterest.com/resource/BoardSectionPinsResource/get/'
-                , params=post_d, timeout=(30, 30))
-        else:
-            r = IMGS_SESSION.get('https://www.pinterest.com/resource/BoardFeedResource/get/'
-                , params=post_d, timeout=(30, 30))
+        for t in (15, 30, 40, 50, 60):
+            try:
+                if section_slug:
+                    r = IMGS_SESSION.get('https://www.pinterest.com/resource/BoardSectionPinsResource/get/'
+                        , params=post_d, timeout=(t, t))
+                else:
+                    r = IMGS_SESSION.get('https://www.pinterest.com/resource/BoardFeedResource/get/'
+                        , params=post_d, timeout=(t, t))
+                break
+            except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
+                time.sleep(5)
+                IMGS_SESSION = get_session(2, proxies)
+
 
         #print('Imgs url ok: ' + str(r.ok))
         #print('Imgs url: ' + r.url)
