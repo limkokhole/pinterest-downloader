@@ -232,7 +232,7 @@ def get_pin_info(pin_id, arg_timestamp_log, url_path, arg_force_update, arg_dir,
             break
         #print('https://www.pinterest.com/pin/{}/'.format(pin_id))
         try:
-            r = PIN_SESSION.get('https://www.pinterest.com/pin/{}/'.format(pin_id), timeout=120)
+            r = PIN_SESSION.get('https://www.pinterest.com/pin/{}/'.format(pin_id), timeout=(120, 30))
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
             print('[E1][pin] Failed. Retry after 5 seconds...')
             time.sleep(5)
@@ -282,7 +282,7 @@ def get_board_info(board_or_sec_path, exclude_section, section, board_path, prox
     s = get_session(0, proxies)
 
     #print('https://www.pinterest.com/{}/'.format(board_or_sec_path))
-    r = s.get('https://www.pinterest.com/{}/'.format(board_or_sec_path), timeout=30)
+    r = s.get('https://www.pinterest.com/{}/'.format(board_or_sec_path), timeout=(30, 30))
     root = html.fromstring(r.content)
     #print(str(r.content))
     #tag = root.xpath("//script[@id='initial-state']")[0]
@@ -406,7 +406,7 @@ def fetch_boards(uname, proxies):
 
         #print('[boards] called headers: ' + repr(s.headers))
 
-        r = s.get('https://www.pinterest.com/resource/BoardsResource/get/', params=post_d, timeout=30)
+        r = s.get('https://www.pinterest.com/resource/BoardsResource/get/', params=post_d, timeout=(30, 30))
 
         #print('[Boards url]: ' + r.url)
         data = r.json()
@@ -620,9 +620,9 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, PIN_
                 
                 #url = 'https://httpbin.org/get'
                 is_ok = False
-                for t in (15, 30):
+                for t in (15, 30, 40, 50, 60):
                     try:
-                        r = IMG_SESSION.get(url, stream=True, timeout=t)
+                        r = IMG_SESSION.get(url, stream=True, timeout=(t, t))
                         is_ok = True
                         #raise(requests.exceptions.ConnectionError)
                         break
@@ -643,19 +643,25 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, PIN_
                                 f.write(chunk)
                                 #raise(requests.exceptions.ConnectionError)
                     except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
-                        try:
-                            time.sleep(5)
-                            IMG_SESSION_RETY = get_session(3, proxies)
-                            r = IMG_SESSION_RETY.get(url, stream=True, timeout=120) # Need higher timeout
-                            with open(file_path, 'wb') as f:
-                                for chunk in r:
-                                    f.write(chunk)
-                                    #raise(requests.exceptions.ConnectionError)
-                        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
-                            cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this image at'
-                            , file_path, 'failed URL:', url, '\n') ]), attrs=BOLD_ONLY, end='' )
-                            cprint(''.join([ HIGHER_RED, '%s' % ('\n[e1] You may want to delete this image manually and retry later(with -rs or try with single pin ' 
-                            + ('https://www.pinterest.com/pin/' + repr(image['id']).strip("'")  ) + ').\n\n') ]), attrs=BOLD_ONLY, end='' )  
+                            is_success = False
+                            for t in (15, 30, 40, 50, 60):
+                                time.sleep(5)
+                                try:
+                                    IMG_SESSION_RETY = get_session(3, proxies)
+                                    r = IMG_SESSION_RETY.get(url, stream=True, timeout=(t, t)) # Need higher timeout
+                                    with open(file_path, 'wb') as f:
+                                        for chunk in r:
+                                            f.write(chunk)
+                                            #raise(requests.exceptions.ConnectionError)
+                                    is_success = True
+                                    break
+                                except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
+                                    pass
+                            if not is_success:
+                                cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this image at'
+                                , file_path, 'failed URL:', url, '\n') ]), attrs=BOLD_ONLY, end='' )
+                                cprint(''.join([ HIGHER_RED, '%s' % ('\n[e1] You may want to delete this image manually and retry later(with -rs or try with single pin ' 
+                                + ('https://www.pinterest.com/pin/' + repr(image['id']).strip("'")  ) + ').\n\n') ]), attrs=BOLD_ONLY, end='' )  
                     except OSError: # e.g. File name too long
                         cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this image at'
                             , file_path, 'failed :', url, '\n') ]), attrs=BOLD_ONLY, end='' )
@@ -683,11 +689,11 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, PIN_
                         
                         if not os.path.exists(file_path) or arg_force_update:
                             is_ok = False
-                            for t in (15, 30):
+                            for t in (15, 30, 40, 50, 60):
                                 try:
                                     # timeout=(connect_timeout, read_timeout)
                                     # https://github.com/psf/requests/issues/3099#issuecomment-215498005
-                                    r = IMG_SESSION.get(url, stream=True, timeout=(t, None))
+                                    r = IMG_SESSION.get(url, stream=True, timeout=(t, t))
                                     is_ok = True
                                     break
                                 except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
@@ -701,15 +707,21 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, PIN_
                                             f.write(chunk)
                                         #raise(requests.exceptions.ConnectionError)
                                 except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError, requests.exceptions.ChunkedEncodingError) as e:
-                                    try:
+                                    is_success = False
+                                    for t in (15, 30, 40, 50, 60):
                                         time.sleep(5)
-                                        IMG_SESSION_RETY = get_session(3, proxies)
-                                        r = IMG_SESSION_RETY.get(url, stream=True, timeout=(30, None))
-                                        with open(file_path, 'wb') as f:
-                                            for chunk in r:
-                                                f.write(chunk)
-                                            #raise(requests.exceptions.ConnectionError)
-                                    except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError, requests.exceptions.ChunkedEncodingError) as e:
+                                        try:
+                                            IMG_SESSION_RETY = get_session(3, proxies)
+                                            r = IMG_SESSION_RETY.get(url, stream=True, timeout=(t, t))
+                                            with open(file_path, 'wb') as f:
+                                                for chunk in r:
+                                                    f.write(chunk)
+                                                #raise(requests.exceptions.ConnectionError)
+                                            is_success = True
+                                            break
+                                        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError, requests.exceptions.ChunkedEncodingError) as e:
+                                            pass
+                                    if not is_success:
                                         cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this image at'
                                             , file_path, 'failed :', url, '\n') ]), attrs=BOLD_ONLY, end='' )
                                         cprint(''.join([ HIGHER_RED, '%s' % ('\n[e2] You may want to delete this image manually and retry later.\n\n') ]), attrs=BOLD_ONLY, end='' )  
@@ -766,9 +778,9 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, PIN_
                 if not os.path.exists(file_path) or arg_force_update:
                    
                     is_ok = False
-                    for t in (15, 30):
+                    for t in (15, 30, 40, 50, 60):
                         try:
-                            r = V_SESSION.get(vurl, stream=True, timeout=(t, None))
+                            r = V_SESSION.get(vurl, stream=True, timeout=(t, t))
                             is_ok = True
                             break
                         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
@@ -787,15 +799,21 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, PIN_
                                     #raise(requests.exceptions.ConnectionError)
                         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError, requests.exceptions.ChunkedEncodingError) as e:
                             # requests.exceptions.ChunkedEncodingError: ("Connection broken: ConnectionResetError(104, 'Connection reset by peer')", ConnectionResetError(104, 'Connection reset by peer'))
-                            time.sleep(5)
-                            try:
-                                V_SESSION_RETY = get_session(4, proxies)
-                                r = V_SESSION_RETY.get(vurl, stream=True, timeout=(120, None))
-                                with open(file_path, 'wb') as f:
-                                    for chunk in r:
-                                        f.write(chunk)
-                                        #raise(requests.exceptions.ConnectionError)
-                            except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError, requests.exceptions.ChunkedEncodingError) as e:
+                            is_success = False
+                            for t in (15, 30, 40, 50, 60):
+                                time.sleep(5)
+                                try:
+                                    V_SESSION_RETY = get_session(4, proxies)
+                                    r = V_SESSION_RETY.get(vurl, stream=True, timeout=(t, t))
+                                    with open(file_path, 'wb') as f:
+                                        for chunk in r:
+                                            f.write(chunk)
+                                            #raise(requests.exceptions.ConnectionError)
+                                    is_success = True
+                                    break
+                                except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError, requests.exceptions.ChunkedEncodingError) as e:
+                                    pass
+                            if not is_success:
                                 cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this video at'
                                     , file_path, 'failed :', vurl, '\n') ]), attrs=BOLD_ONLY, end='' )
                                 cprint(''.join([ HIGHER_RED, '%s' % ('\n[e3] You may want to delete this video manually and retry later.\n\n') ]), attrs=BOLD_ONLY, end='' )  
@@ -1133,10 +1151,10 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
 
         if section_slug:
             r = IMGS_SESSION.get('https://www.pinterest.com/resource/BoardSectionPinsResource/get/'
-                , params=post_d, timeout=30)
+                , params=post_d, timeout=(30, 30))
         else:
             r = IMGS_SESSION.get('https://www.pinterest.com/resource/BoardFeedResource/get/'
-                , params=post_d, timeout=30)
+                , params=post_d, timeout=(30, 30))
 
         #print('Imgs url ok: ' + str(r.ok))
         #print('Imgs url: ' + r.url)
