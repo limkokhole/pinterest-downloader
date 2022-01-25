@@ -1032,6 +1032,7 @@ def get_latest_pin(save_dir):
                 break
             latest_pin = imgs_f_sorted[-1].split('.')[0].split('_')[0]
 
+    # if latest pin deleted remote then will acts as -rs
     #print('latest_pin: ' + latest_pin)
     return latest_pin
 
