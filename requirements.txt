@@ -1,4 +1,4 @@
 colorama
+lxml
 requests
 termcolor
-lxml
