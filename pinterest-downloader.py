@@ -220,7 +220,11 @@ def dj(j, tag=None):
     print(json.dumps(j, sort_keys=True, indent=4))
 
 
-def get_pin_info(pin_id, arg_timestamp_log, url_path, arg_force_update, arg_dir, arg_cut, arg_el, fs_f_max, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, get_data_only):
+def get_pin_info(pin_id, arg_timestamp_log, url_path
+    , arg_force_update, arg_img_only, arg_v_only
+    , arg_dir, arg_cut, arg_el, fs_f_max
+    , IMG_SESSION, V_SESSION, PIN_SESSION, proxies
+    , get_data_only):
 
     scripts = []
     is_success = False
@@ -269,10 +273,10 @@ def get_pin_info(pin_id, arg_timestamp_log, url_path, arg_force_update, arg_dir,
         # Program can't automate for you, imagine -d already 2045th bytes in full path
         #, is unwise if program make dir in parent directory.
         create_dir(arg_dir)
-        write_log( arg_timestamp_log, url_path, None, arg_dir, [image], image['id'], arg_cut, False )
+        write_log( arg_timestamp_log, url_path, None, arg_img_only, arg_v_only, arg_dir, [image], image['id'], arg_cut, False )
         print('[i] Download Pin id: ' + str(image['id']) + ' into directory: ' + arg_dir.rstrip(os.sep) + os.sep)
         printProgressBar(0, 1, prefix='[...] Downloading:', suffix='Complete', length=50)
-        download_img(image, arg_dir, arg_force_update, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, arg_cut, arg_el, fs_f_max)
+        download_img(image, arg_dir, arg_force_update, arg_img_only, arg_v_only, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, arg_cut, arg_el, fs_f_max)
         printProgressBar(1, 1, prefix='[' + done_tag + '] Downloaded:', suffix='Complete   ', length=50)
     except KeyError:
         return quit(traceback.format_exc())
@@ -607,7 +611,7 @@ def get_output_file_path(url, arg_cut, fs_f_max, image_id, human_fname, save_dir
     return file_path
 
 
-def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, arg_cut, arg_el, fs_f_max):
+def download_img(image, save_dir, arg_force_update, arg_img_only, arg_v_only, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, arg_cut, arg_el, fs_f_max):
 
     try:
         # Using threading.Lock() if necessary
@@ -639,7 +643,7 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, PIN_
 
         #print(human_fname)
 
-        if 'images' in image:
+        if not arg_v_only and ('images' in image):
             url = image['images']['orig']['url']
 
             #hn_bk = human_fname # TESTING -el
@@ -779,10 +783,10 @@ def download_img(image, save_dir, arg_force_update, IMG_SESSION, V_SESSION, PIN_
         else: 
             pass #print('No image found in this image index. This is normal (may be 1))')
 
-        if ('videos' in image) and image['videos']: # image['videos'] may None
+        if not arg_img_only and ('videos' in image) and image['videos']: # image['videos'] may None
             #dj(image, 'before override') # override m3u8-only data with pin details page mp4
             v_pin_id = image['id']
-            image = get_pin_info(v_pin_id, None, None, None, None, None, None, None, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, True)
+            image = get_pin_info(v_pin_id, None, None, None, False, False, None, None, None, None, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, True)
             #dj(image, 'after override') # [todo:0] Rich Metadata for video write to log (only pin can get)
             if not image:
                 cprint(''.join([ HIGHER_RED, '%s %s%s' % ('\n[' + x_tag 
@@ -891,7 +895,9 @@ def create_dir(save_dir):
         You may want to to use -d <other path> OR -c <Maximum length of folder & filename>.\n\n') ]), attrs=BOLD_ONLY, end='' )  
         raise
 
-def write_log(arg_timestamp_log, url_path, shortform, save_dir, images, pin, arg_cut, break_from_latest_pin):
+def write_log(arg_timestamp_log, url_path, shortform
+    , arg_img_only, arg_v_only
+    , save_dir, images, pin, arg_cut, break_from_latest_pin):
 
     got_img = False
     
@@ -972,6 +978,12 @@ def write_log(arg_timestamp_log, url_path, shortform, save_dir, images, pin, arg
             if image_id in existing_indexes: 
                 # Still got_img True to try re-download flow since only want to ensure log don't want duplicated if reorder
                 continue
+            # Exclude image log if --video-only, and vice-versa.
+            if not ( (not arg_img_only and ('videos' in image) and image['videos']) \
+                    or (not arg_v_only and ('images' in image)) ):
+                skipped_total+=1
+                continue
+
             #dj(image)
             #print('got img: ' + image_id) # Possible got id but empty section
             #, so still failed to use got_img to skip showing estimated 1 image if actually empty
@@ -1039,7 +1051,7 @@ def get_latest_pin(save_dir):
 
 def fetch_imgs(board, uname, board_slug, section_slug, is_main_board
     , arg_timestamp, arg_timestamp_log, url_path
-    , arg_force_update, arg_rescrape
+    , arg_force_update, arg_rescrape, arg_img_only, arg_v_only
     , arg_dir, arg_thread_max
     , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, proxies
     , arg_cut, arg_el, fs_f_max):
@@ -1268,7 +1280,7 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
     #    print(img['id'])
 
     create_dir(save_dir)
-    got_img = write_log(arg_timestamp_log, url_path, shortform, save_dir, images, None, arg_cut, break_from_latest_pin)
+    got_img = write_log(arg_timestamp_log, url_path, shortform, arg_img_only, arg_v_only, save_dir, images, None, arg_cut, break_from_latest_pin)
 
     if got_img:
         # Always got extra index is not media, so -1
@@ -1293,7 +1305,7 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
     with ThreadPoolExecutor(max_workers = arg_thread_max) as executor:
 
         # Create threads
-        futures = {executor.submit(download_img, image, save_dir, arg_force_update
+        futures = {executor.submit(download_img, image, save_dir, arg_force_update, arg_img_only, arg_v_only
                 , IMG_SESSION, V_SESSION, PIN_SESSION, proxies, arg_cut, arg_el, fs_f_max) for image in images}
 
         # as_completed() gives you the threads once finished
@@ -1313,6 +1325,7 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
 
 
 def update_all( arg_thread_max :int, arg_cut :int, arg_rescrape :bool
+    , arg_img_only, arg_v_only
     , arg_https_proxy :str, arg_http_proxy :str):
 
     bk_cwd = os.path.abspath(os.getcwd())
@@ -1389,7 +1402,7 @@ def update_all( arg_thread_max :int, arg_cut :int, arg_rescrape :bool
             #print('run URL:' + input_url)
             while 1:
                 try:
-                    run_library_main(input_url, '.',  arg_thread_max, arg_cut, False, False, False, True, arg_rescrape, False, arg_https_proxy, arg_http_proxy)
+                    run_library_main(input_url, '.',  arg_thread_max, arg_cut, False, False, False, True, arg_rescrape, arg_img_only, arg_v_only, False, arg_https_proxy, arg_http_proxy)
                     break
                 except requests.exceptions.ReadTimeout:
                     cprint(''.join([ HIGHER_RED, '{}'.format('\n[' + x_tag + '] [U] Suddenly not able to connect. Please check your network.\n') ]), attrs=BOLD_ONLY, end='' )
@@ -1402,14 +1415,20 @@ def update_all( arg_thread_max :int, arg_cut :int, arg_rescrape :bool
 # Caller script example:
 # import importlib
 # pin_dl = importlib.import_module('pinterest-downloader')
-# pin_dl.run_library_main('antonellomiglio/computer', '.', 0, -1, False, False, False, False, False, False, None, None)
+# pin_dl.run_library_main('antonellomiglio/computer', '.', 0, -1, False, False, False, False, False, False, False, False, None, None)
 def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :int
     , arg_board_timestamp :bool, arg_log_timestamp :bool
-    , arg_force :bool, arg_exclude_section :bool, arg_rescrape :bool, arg_update_all :bool
+    , arg_force :bool, arg_exclude_section :bool, arg_rescrape :bool
+    , arg_img_only :bool, arg_v_only :bool, arg_update_all :bool
     , arg_https_proxy :str, arg_http_proxy :str):
 
+    # Not feasible update based on latest pin if v/img only
+    # , unless download zero size img if video only(vice-versa) which seems not desired.
+    if arg_img_only or arg_v_only: 
+        arg_rescrape = True
+
     if arg_update_all:
-        return update_all(arg_thread_max, arg_cut, arg_rescrape, arg_https_proxy, arg_http_proxy)
+        return update_all(arg_thread_max, arg_cut, arg_rescrape, arg_img_only, arg_v_only, arg_https_proxy, arg_http_proxy)
 
     start_time = int(time.time())
 
@@ -1483,7 +1502,7 @@ def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :
             PIN_SESSION = get_session(0, proxies)
             IMG_SESSION = get_session(3, proxies)
             V_SESSION = get_session(4, proxies)
-            get_pin_info(pin_id.strip(), arg_log_timestamp, url_path, arg_force, arg_dir, arg_cut, arg_el, fs_f_max, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, False)
+            get_pin_info(pin_id.strip(), arg_log_timestamp, url_path, arg_force, arg_img_only, arg_v_only, arg_dir, arg_cut, arg_el, fs_f_max, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, False)
 
     if len(slash_path) == 3:
         sec_path = '/'.join(slash_path)
@@ -1500,7 +1519,8 @@ def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :
             V_SESSION = get_session(4, proxies)
             fetch_imgs( board, slash_path[-3], slash_path[-2], slash_path[-1], False
                 , arg_board_timestamp, arg_log_timestamp, url_path
-                , arg_force, arg_rescrape, arg_dir, arg_thread_max
+                , arg_force, arg_rescrape, arg_img_only, arg_v_only
+                , arg_dir, arg_thread_max
                 , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, proxies
                 , arg_cut, arg_el, fs_f_max )
         except KeyError:
@@ -1519,7 +1539,8 @@ def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :
             V_SESSION = get_session(4, proxies)
             fetch_imgs( board, slash_path[-2], slash_path[-1], None, False
                 , arg_board_timestamp, arg_log_timestamp, url_path
-                , arg_force, arg_rescrape, arg_dir, arg_thread_max
+                , arg_force, arg_rescrape, arg_img_only, arg_v_only
+                , arg_dir, arg_thread_max
                 , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, proxies
                 , arg_cut, arg_el, fs_f_max )
             if (not arg_exclude_section) and sections:
@@ -1530,7 +1551,8 @@ def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :
                     board = get_board_info(sec_path, False, sec['slug'], board_path, proxies) # False not using bcoz sections not [] already
                     fetch_imgs( board, slash_path[-2], slash_path[-1], sec['slug'], False
                         , arg_board_timestamp, arg_log_timestamp, url_path
-                        , arg_force, arg_rescrape, arg_dir, arg_thread_max
+                        , arg_force, arg_rescrape, arg_img_only, arg_v_only
+                        , arg_dir, arg_thread_max
                         , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, proxies
                         , arg_cut, arg_el, fs_f_max )
 
@@ -1568,7 +1590,8 @@ def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :
 
                 fetch_imgs( board, slash_path[-1], board_slug, None, is_main_board
                     , arg_board_timestamp, arg_log_timestamp, url_path
-                    , arg_force, arg_rescrape, arg_dir, arg_thread_max
+                    , arg_force, arg_rescrape, arg_img_only, arg_v_only
+                    , arg_dir, arg_thread_max
                     , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, proxies
                     , arg_cut, arg_el, fs_f_max )
                 if (not arg_exclude_section) and (board['section_count'] > 0):
@@ -1582,7 +1605,8 @@ def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :
                         sec_uname, sec_bname = board_path.split('/')
                         fetch_imgs( board, sec_uname, sec_bname, sec['slug'], False
                             , arg_board_timestamp, arg_log_timestamp, url_path
-                            , arg_force, arg_rescrape, arg_dir, arg_thread_max
+                            , arg_force, arg_rescrape, arg_img_only, arg_v_only
+                            , arg_dir, arg_thread_max
                             , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, proxies
                             , arg_cut, arg_el, fs_f_max )
 
@@ -1626,9 +1650,11 @@ def run_direct_main():
         This issue is because Pinterest only lists reordered as you see in the webpage which possible newer images reorder below local highest Pin ID image and missed unless fetch all pages.') 
     arg_parser.add_argument('-ua', '--update-all', dest='update_all', action='store_true', help='Update all folders in current directory recursively based on theirs urls-pinterest-downloader.urls.\n\
         New section will not download. New board may download if previously download by username.\n\
-        Options other than -c, -j, -rs, -ps/p will ignore.\n\
+        Options other than -c, -j, -rs, -io/vo, -ps/p will ignore.\n\
         -c must same if provided previously or else filename not same will re-download. Not recommend to use -c at all.') 
     arg_parser.add_argument('-es', '--exclude-section', dest='exclude_section', action='store_true', help='Exclude sections if download from username or board.')
+    arg_parser.add_argument('-io', '--image-only', dest='img_only', action='store_true', help='Download image only. Assumed -rs')
+    arg_parser.add_argument('-vo', '--video-only', dest='v_only', action='store_true', help='Download video only. Assumed -rs')
     arg_parser.add_argument('-ps', '--https-proxy', help='Set proxy for https.')
     arg_parser.add_argument('-p', '--http-proxy', help='Set proxy for http.')
     try:
@@ -1644,7 +1670,8 @@ def run_direct_main():
 
     return run_library_main(args.path, args.dir, args.thread_max, args.cut
                             , args.board_timestamp, args.log_timestamp
-                            , args.force, args.exclude_section, args.rescrape, args.update_all
+                            , args.force, args.exclude_section, args.rescrape
+                            , args.img_only, args.v_only, args.update_all
                             , args.https_proxy, args.http_proxy)
     
 

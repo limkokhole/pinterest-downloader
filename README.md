@@ -26,7 +26,8 @@ Download all images/videos from Pinterest user/board/section.
 
     $ python3 pinterest-downloader.py --help
     usage: pinterest-downloader.py [-h] [-d DIR] [-j THREAD_MAX] [-c CUT] [-bt]
-                                [-lt] [-f] [-es]
+                                [-lt] [-f] [-rs] [-ua] [-es] [-io] [-vo]
+                                [-ps HTTPS_PROXY] [-p HTTP_PROXY]
                                 [path]
 
     Download ALL board/section from 🅿️interest by username, username/boardname,
@@ -71,11 +72,13 @@ Download all images/videos from Pinterest user/board/section.
                            based on theirs urls-pinterest-downloader.urls. New
                            section will not download. New board may download if
                            previously download by username. Options other than
-                           -c, -j, -rs, -ps/p will ignore. -c must same if
-                           provided previously or else filename not same will re-
-                           download. Not recommend to use -c at all.
+                           -c, -j, -rs, -io/vo, -ps/p will ignore. -c must same
+                           if provided previously or else filename not same will
+                           re-download. Not recommend to use -c at all.
       -es, --exclude-section
-                                Exclude sections if download from username or board.
+                           Exclude sections if download from username or board.
+      -io, --image-only     Download image only. Assumed -rs
+      -vo, --video-only     Download video only. Assumed -rs
       -ps HTTPS_PROXY, --https-proxy HTTPS_PROXY
                             Set proxy for https.
       -p HTTP_PROXY, --http-proxy HTTP_PROXY
@@ -165,5 +168,5 @@ Download all images/videos from Pinterest user/board/section.
 ### You can also use another python script to run, e.g.:
     import importlib
     pin_dl = importlib.import_module('pinterest-downloader')
-    pin_dl.run_library_main('antonellomiglio/computer', '.', 0, -1, False, False, False, False, False, False, None, None)
+    pin_dl.run_library_main('antonellomiglio/computer', '.', 0, -1, False, False, False, False, False, False, False, False, None, None)
 
