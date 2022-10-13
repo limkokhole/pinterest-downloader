@@ -71,7 +71,6 @@ HIGHER_RED = Fore.LIGHTRED_EX
 HIGHER_YELLOW = Fore.LIGHTYELLOW_EX
 BOLD_ONLY = ['bold']
 
-
 def quit(msgs, exit=True):
     if not isinstance(msgs, list):
         msgs = [msgs]
@@ -82,7 +81,6 @@ def quit(msgs, exit=True):
             print('\n')
         else:
             cprint(''.join([ HIGHER_RED, '%s' % (msg) ]), attrs=BOLD_ONLY, end='\n' )
-
 
 try:
     x_tag = '✖'
@@ -109,6 +107,9 @@ import requests
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+from http.cookies import SimpleCookie
+from requests.cookies import cookiejar_from_dict
+
 # RIP UA, https://groups.google.com/a/chromium.org/forum/m/#!msg/blink-dev/-2JIRNMWJ7s/yHe4tQNLCgAJ
 UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.0.0 Safari/537.36'
 
@@ -116,7 +117,6 @@ UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like 
 # if prefix \\?\ + abspath to use Windows extented-length(i.e. in my case, individual filename/dir can use full 259, no more 259 is fit full path), then the MAX_PATH is 259 - 4 = 255
 #[DEPRECATED] no more 259 since always -el now AND Windows 259 - \\?\ == 255 normal Linux
 WIN_MAX_PATH = 255 # MAX_PATH 260 need exclude 1 terminating null character <NUL>
-
 
 # https://stackoverflow.com/a/34325723/1074998
 def printProgressBar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='#'):
@@ -139,7 +139,6 @@ def printProgressBar(iteration, total, prefix='', suffix='', decimals=1, length=
         cprint(''.join([ HIGHER_GREEN, '%s' % ('\r{} |{}| {}% {}'.format(prefix, bar, percent, suffix)) ]), attrs=BOLD_ONLY, end='' )
         sys.stdout.flush()
 
-
 #imgs:
 #source_url=%2Fmistafisha%2Fanimals%2F&data=%7B%22options%22%3A%7B%22isPrefetch%22%3Afalse%2C%22board_id%22%3A
 #%2253761857990790784%22%2C%22board_url%22%3A%22%2Fmistafisha%2Fanimals%2F%22%2C%22field_set_key%22%3A%22react_grid_pin
@@ -150,9 +149,26 @@ def printProgressBar(iteration, total, prefix='', suffix='', decimals=1, length=
 #,"board_url":"/mistafisha/animals/","field_set_key":"react_grid_pin","filter_section_pins":true,"sort":"default"
 #,"layout":"default","page_size":25,"redux_normalize_feed":true},"context":{}}&_=1592340515565
 VER = (None, 'c643827', '4c8c36f')
-def get_session(ver_i, proxies):
+def get_session(ver_i, proxies, cookie_file):
     s = requests.Session()
     s.proxies = proxies
+    
+    try:
+        with open(cookie_file) as f:
+            rawdata = f.read()
+            
+        my_cookie = SimpleCookie()
+        my_cookie.load(rawdata)
+        cookies = {key: morsel.value for key, morsel in my_cookie.items()}
+
+    except:
+        cookies = None
+        
+    try:
+        s.cookies = cookiejar_from_dict(cookies)
+    except:
+        pass
+    
     if ver_i == 0:
         s.headers = {
             #'Host': 'www.pinterest.com',
@@ -213,31 +229,40 @@ def get_session(ver_i, proxies):
 
     return s
 
-
 def dj(j, tag=None):
     if tag:
         print('### [' + tag + '] ###')
     print(json.dumps(j, sort_keys=True, indent=4))
 
-
 def get_pin_info(pin_id, arg_timestamp_log, url_path
     , arg_force_update, arg_img_only, arg_v_only
     , arg_dir, arg_cut, arg_el, fs_f_max
     , IMG_SESSION, V_SESSION, PIN_SESSION, proxies
-    , get_data_only):
+    , cookie_file, get_data_only):
 
     scripts = []
     is_success = False
     for t in (15, 30, 40, 50, 60):
         #print('https://www.pinterest.com/pin/{}/'.format(pin_id))
+        
         try:
-            r = PIN_SESSION.get('https://www.pinterest.com/pin/{}/'.format(pin_id), timeout=(t, t))
+            with open(cookie_file) as f:
+                rawdata = f.read()
+            my_cookie = SimpleCookie()
+            my_cookie.load(rawdata)
+            cookies = {key: morsel.value for key, morsel in my_cookie.items()}
+            cookies = cookiejar_from_dict(cookies)
+        except:
+            cookies = None
+        
+        try:
+            r = PIN_SESSION.get('https://www.pinterest.com/pin/{}/'.format(pin_id), timeout=(t, t), cookies=cookies)
             is_success = True
             break
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
             #print('[E1][pin] Failed. Retry after 5 seconds...')
             time.sleep(5)
-            PIN_SESSION = get_session(0, proxies)
+            PIN_SESSION = get_session(0, proxies, cookies)
 
     if is_success:
         root = html.fromstring(r.content)
@@ -276,16 +301,26 @@ def get_pin_info(pin_id, arg_timestamp_log, url_path
         write_log( arg_timestamp_log, url_path, None, arg_img_only, arg_v_only, arg_dir, [image], image['id'], arg_cut, False )
         print('[i] Download Pin id: ' + str(image['id']) + ' into directory: ' + arg_dir.rstrip(os.sep) + os.sep)
         printProgressBar(0, 1, prefix='[...] Downloading:', suffix='Complete', length=50)
-        download_img(image, arg_dir, arg_force_update, arg_img_only, arg_v_only, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, arg_cut, arg_el, fs_f_max)
+        download_img(image, arg_dir, arg_force_update, arg_img_only, arg_v_only, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, cookie_file, arg_cut, arg_el, fs_f_max)
         printProgressBar(1, 1, prefix='[' + done_tag + '] Downloaded:', suffix='Complete   ', length=50)
     except KeyError:
         return quit(traceback.format_exc())
     print()
 
-
-def get_board_info(board_or_sec_path, exclude_section, section, board_path, proxies, retry=False):
-    s = get_session(0, proxies)
-
+def get_board_info(board_or_sec_path, exclude_section, section, board_path, proxies, cookie_file, retry=False):
+    try:
+        with open(cookie_file) as f:
+            rawdata = f.read()
+        my_cookie = SimpleCookie()
+        my_cookie.load(rawdata)
+        cookies = {key: morsel.value for key, morsel in my_cookie.items()}
+        cookies = cookiejar_from_dict(cookies)
+    except:
+        cookies = None
+        
+    s = get_session(0, proxies, cookies)
+    #s.cookies = cookies
+    
     #dj(data, 'board main')
     boards = {}
     sections = []
@@ -294,13 +329,22 @@ def get_board_info(board_or_sec_path, exclude_section, section, board_path, prox
     #print('https://www.pinterest.com/{}/'.format(board_or_sec_path))
     for t in (15, 30, 40, 50, 60):
         try:
-            r = s.get('https://www.pinterest.com/{}/'.format(board_or_sec_path), timeout=(t, t))
+            with open(cookie_file) as f:
+                rawdata = f.read()
+            my_cookie = SimpleCookie()
+            my_cookie.load(rawdata)
+            cookies = {key: morsel.value for key, morsel in my_cookie.items()}
+            cookies = cookiejar_from_dict(cookies)
+        except:
+            cookies = None
+        try:
+            r = s.get('https://www.pinterest.com/{}/'.format(board_or_sec_path), timeout=(t, t), cookies=cookies)
             is_success = True
             break
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
             #print('[E1][pin] Failed. Retry after 5 seconds...')
             time.sleep(5)
-            s = get_session(0, proxies)
+            s = get_session(0, proxies, cookies)
 
     if is_success:
         root = html.fromstring(r.content)
@@ -329,7 +373,6 @@ def get_board_info(board_or_sec_path, exclude_section, section, board_path, prox
             return boards
         else:
             return boards, sections
-
 
     board_dk = list(board_d.keys())
     if section:
@@ -382,10 +425,21 @@ def get_board_info(board_or_sec_path, exclude_section, section, board_path, prox
     else:
         return boards, sections
 
+def fetch_boards(uname, proxies, cookie_file):
 
-def fetch_boards(uname, proxies):
+    try:
+        with open(cookie_file) as f:
+            rawdata = f.read()
+        my_cookie = SimpleCookie()
+        my_cookie.load(rawdata)
+        cookies = {key: morsel.value for key, morsel in my_cookie.items()}
+        cookies = cookiejar_from_dict(cookies)
+    except:
+        cookies = None
+        
+    s = get_session(1, proxies, cookies)
+    #s.cookies = cookies
 
-    s = get_session(1, proxies)
     bookmark = None
     boards = []
 
@@ -435,12 +489,22 @@ def fetch_boards(uname, proxies):
         is_success = False
         for t in (15, 30, 40, 50, 60):
             try:
-                r = s.get('https://www.pinterest.com/resource/BoardsResource/get/', params=post_d, timeout=(t, t))
+                with open(cookie_file) as f:
+                    rawdata = f.read()
+                my_cookie = SimpleCookie()
+                my_cookie.load(rawdata)
+                cookies = {key: morsel.value for key, morsel in my_cookie.items()}
+                cookies = cookiejar_from_dict(cookies)
+            except:
+                cookies = None
+            try:  
+                r = s.get('https://www.pinterest.com/resource/BoardsResource/get/', params=post_d, timeout=(t, t), cookies=cookies)
                 is_success = True
                 break
             except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
                 time.sleep(5)
-                s = get_session(1, proxies)
+                s = get_session(1, proxies, cookies)
+                #s.cookies = cookies
         if not is_success:
             cprint(''.join([ HIGHER_RED, '%s %s%s' % ('\n[' + x_tag 
                 + '] Get this username failed :', uname, '\n') ]), attrs=BOLD_ONLY, end='' )
@@ -459,7 +523,6 @@ def fetch_boards(uname, proxies):
     print('[' + plus_tag + '] Found {} Board{}.'.format(b_len, 's' if b_len > 1 else ''))
 
     return boards
-
 
 def sanitize(path):
     # trim multiple whitespaces # ".." is the responsibilities of get max path
@@ -488,7 +551,6 @@ def sanitize(path):
     else:
         return ''
 
-
 # The filesystem limits is 255(normal) , 242(docker) or 143((eCryptfs) bytes
 # So can't blindly [:] slice without encode first (which most downloaders do the wrong way)
 # And need decode back after slice
@@ -501,6 +563,7 @@ def sanitize(path):
 # https://stackoverflow.com/questions/13132976
 # https://stackoverflow.com/questions/50385123
 # https://stackoverflow.com/questions/11820006
+
 def get_max_path(arg_cut, fs_f_max, fpart_excluded_immutable, immutable):
     #print('before f: ' + fpart_excluded_immutable)
     if arg_cut >= 0:
@@ -531,7 +594,6 @@ def get_max_path(arg_cut, fs_f_max, fpart_excluded_immutable, immutable):
             Thanks:\n{} # {} # {} # {} # {}\n\n'
             .format(arg_cut, fs_f_max, repr(fpart_excluded_immutable), repr(fpart_excluded_immutable_base), immutable) ]), attrs=BOLD_ONLY, end='' )  
     return fpart_excluded_immutable_base
-
 
 def get_output_file_path(url, arg_cut, fs_f_max, image_id, human_fname, save_dir):
 
@@ -610,8 +672,7 @@ def get_output_file_path(url, arg_cut, fs_f_max, image_id, human_fname, save_dir
     #print('final f: ' + file_path)
     return file_path
 
-
-def download_img(image, save_dir, arg_force_update, arg_img_only, arg_v_only, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, arg_cut, arg_el, fs_f_max):
+def download_img(image, save_dir, arg_force_update, arg_img_only, arg_v_only, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, cookie_file, arg_cut, arg_el, fs_f_max):
 
     try:
         # Using threading.Lock() if necessary
@@ -660,14 +721,23 @@ def download_img(image, save_dir, arg_force_update, arg_img_only, arg_v_only, IM
                 is_ok = False
                 for t in (15, 30, 40, 50, 60):
                     try:
-                        r = IMG_SESSION.get(url, stream=True, timeout=(t, t))
+                        with open(cookie_file) as f:
+                            rawdata = f.read()
+                        my_cookie = SimpleCookie()
+                        my_cookie.load(rawdata)
+                        cookies = {key: morsel.value for key, morsel in my_cookie.items()}
+                        cookies = cookiejar_from_dict(cookies)
+                    except:
+                        cookies = None
+                    try:
+                        r = IMG_SESSION.get(url, stream=True, timeout=(t, t), cookies=cookies)
                         is_ok = True
                         #raise(requests.exceptions.ConnectionError)
                         break
                     except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
                         # Shouldn't print bcoz quite common
                         time.sleep(5)
-                        IMG_SESSION = get_session(3, proxies)
+                        IMG_SESSION = get_session(3, proxies, cookies)
                         #cprint(''.join([ HIGHER_RED, '{}'.format('\n[' + x_tag + '] Image Timeout (Retry next).\n') ]), attrs=BOLD_ONLY, end='' )
                 
                 #print(url + ' ok? '  + str(r.ok))
@@ -685,8 +755,17 @@ def download_img(image, save_dir, arg_force_update, arg_img_only, arg_v_only, IM
                             for t in (15, 30, 40, 50, 60):
                                 time.sleep(5)
                                 try:
-                                    IMG_SESSION_RETY = get_session(3, proxies)
-                                    r = IMG_SESSION_RETY.get(url, stream=True, timeout=(t, t)) # Need higher timeout
+                                    with open(cookie_file) as f:
+                                        rawdata = f.read()
+                                    my_cookie = SimpleCookie()
+                                    my_cookie.load(rawdata)
+                                    cookies = {key: morsel.value for key, morsel in my_cookie.items()}
+                                    cookies = cookiejar_from_dict(cookies)
+                                except:
+                                    cookies = None
+                                try:   
+                                    IMG_SESSION_RETY = get_session(3, proxies, cookies)
+                                    r = IMG_SESSION_RETY.get(url, stream=True, timeout=(t, t), cookies=cookies) # Need higher timeout
                                     with open(file_path, 'wb') as f:
                                         for chunk in r:
                                             f.write(chunk)
@@ -729,14 +808,24 @@ def download_img(image, save_dir, arg_force_update, arg_img_only, arg_v_only, IM
                             is_ok = False
                             for t in (15, 30, 40, 50, 60):
                                 try:
+                                    with open(cookie_file) as f:
+                                        rawdata = f.read()
+                                    my_cookie = SimpleCookie()
+                                    my_cookie.load(rawdata)
+                                    cookies = {key: morsel.value for key, morsel in my_cookie.items()}
+                                    cookies = cookiejar_from_dict(cookies)
+                                except:
+                                    cookies = None
+                                try:
                                     # timeout=(connect_timeout, read_timeout)
                                     # https://github.com/psf/requests/issues/3099#issuecomment-215498005
-                                    r = IMG_SESSION.get(url, stream=True, timeout=(t, t))
+                                   
+                                    r = IMG_SESSION.get(url, stream=True, timeout=(t, t), cookies=cookies)
                                     is_ok = True
                                     break
                                 except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
                                     time.sleep(5)
-                                    IMG_SESSION = get_session(3, proxies)
+                                    IMG_SESSION = get_session(3, proxies, cookies)
                             if is_ok and r.ok:
 
                                 try:
@@ -749,8 +838,17 @@ def download_img(image, save_dir, arg_force_update, arg_img_only, arg_v_only, IM
                                     for t in (15, 30, 40, 50, 60):
                                         time.sleep(5)
                                         try:
-                                            IMG_SESSION_RETY = get_session(3, proxies)
-                                            r = IMG_SESSION_RETY.get(url, stream=True, timeout=(t, t))
+                                            with open(cookie_file) as f:
+                                                rawdata = f.read()
+                                            my_cookie = SimpleCookie()
+                                            my_cookie.load(rawdata)
+                                            cookies = {key: morsel.value for key, morsel in my_cookie.items()}
+                                            cookies = cookiejar_from_dict(cookies)
+                                        except:
+                                            cookies = None
+                                        try:
+                                            IMG_SESSION_RETY = get_session(3, proxies, cookies)
+                                            r = IMG_SESSION_RETY.get(url, stream=True, timeout=(t, t), cookies=cookies)
                                             with open(file_path, 'wb') as f:
                                                 for chunk in r:
                                                     f.write(chunk)
@@ -786,7 +884,7 @@ def download_img(image, save_dir, arg_force_update, arg_img_only, arg_v_only, IM
         if not arg_img_only and ('videos' in image) and image['videos']: # image['videos'] may None
             #dj(image, 'before override') # override m3u8-only data with pin details page mp4
             v_pin_id = image['id']
-            image = get_pin_info(v_pin_id, None, None, None, False, False, None, None, None, None, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, True)
+            image = get_pin_info(v_pin_id, None, None, None, False, False, None, None, None, None, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, cookie_file, True)
             #dj(image, 'after override') # [todo:0] Rich Metadata for video write to log (only pin can get)
             if not image:
                 cprint(''.join([ HIGHER_RED, '%s %s%s' % ('\n[' + x_tag 
@@ -818,13 +916,22 @@ def download_img(image, save_dir, arg_force_update, arg_img_only, arg_v_only, IM
                     is_ok = False
                     for t in (15, 30, 40, 50, 60):
                         try:
-                            r = V_SESSION.get(vurl, stream=True, timeout=(t, t))
+                            with open(cookie_file) as f:
+                                rawdata = f.read()
+                            my_cookie = SimpleCookie()
+                            my_cookie.load(rawdata)
+                            cookies = {key: morsel.value for key, morsel in my_cookie.items()}
+                            cookies = cookiejar_from_dict(cookies)
+                        except:
+                            cookies = None
+                        try:
+                            r = V_SESSION.get(vurl, stream=True, timeout=(t, t), cookies=cookies)
                             is_ok = True
                             break
                         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
                             # Shouldn't print bcoz quite common
                             time.sleep(5) #cprint(''.join([ HIGHER_RED, '{}'.format('\n[' + x_tag + '] Video Timeout (Retry next).\n') ]), attrs=BOLD_ONLY, end='' )
-                            V_SESSION = get_session(4, proxies)
+                            V_SESSION = get_session(4, proxies, cookies)
                     
                     #print(vurl + ' ok? '  + str(r.ok))
 
@@ -841,8 +948,17 @@ def download_img(image, save_dir, arg_force_update, arg_img_only, arg_v_only, IM
                             for t in (15, 30, 40, 50, 60):
                                 time.sleep(5)
                                 try:
-                                    V_SESSION_RETY = get_session(4, proxies)
-                                    r = V_SESSION_RETY.get(vurl, stream=True, timeout=(t, t))
+                                    with open(cookie_file) as f:
+                                        rawdata = f.read()
+                                    my_cookie = SimpleCookie()
+                                    my_cookie.load(rawdata)
+                                    cookies = {key: morsel.value for key, morsel in my_cookie.items()}
+                                    cookies = cookiejar_from_dict(cookies)
+                                except:
+                                    cookies = None
+                                try:
+                                    V_SESSION_RETY = get_session(4, proxies, cookies)
+                                    r = V_SESSION_RETY.get(vurl, stream=True, timeout=(t, t), cookies=cookies)
                                     with open(file_path, 'wb') as f:
                                         for chunk in r:
                                             f.write(chunk)
@@ -868,7 +984,6 @@ def download_img(image, save_dir, arg_force_update, arg_img_only, arg_v_only, IM
     except: # Need catch inside job, or else it doesn't throws
         print()
         return quit(traceback.format_exc())
-
 
 def create_dir(save_dir):
 
@@ -1019,13 +1134,11 @@ def write_log(arg_timestamp_log, url_path, shortform
 
     return got_img
 
-
 def sort_func(x):
     prefix = x.split('.')[0].split('_')[0]
     if prefix.isdigit():
        return int(prefix)
     return 0
-
 
 def get_latest_pin(save_dir):
     # Currently possible long non-number A8pQTwIQQLQGWEacY5vc6og pin id but should rare case and ignore/re-scrape is fine
@@ -1048,13 +1161,12 @@ def get_latest_pin(save_dir):
     #print('latest_pin: ' + latest_pin)
     return latest_pin
 
-
 def fetch_imgs(board, uname, board_slug, section_slug, is_main_board
     , arg_timestamp, arg_timestamp_log, url_path
     , arg_force_update, arg_rescrape, arg_img_only, arg_v_only
     , arg_dir, arg_thread_max
     , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, proxies
-    , arg_cut, arg_el, fs_f_max):
+    , cookie_file, arg_cut, arg_el, fs_f_max):
     
     bookmark = None
     images = []
@@ -1199,16 +1311,33 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
         for t in (15, 30, 40, 50, 60):
             try:
                 if section_slug:
+                    try:
+                        with open(cookie_file) as f:
+                            rawdata = f.read()
+                        my_cookie = SimpleCookie()
+                        my_cookie.load(rawdata)
+                        cookies = {key: morsel.value for key, morsel in my_cookie.items()}
+                        cookies = cookiejar_from_dict(cookies)
+                    except:
+                        cookies = None
                     r = IMGS_SESSION.get('https://www.pinterest.com/resource/BoardSectionPinsResource/get/'
-                        , params=post_d, timeout=(t, t))
+                        , params=post_d, timeout=(t, t), cookies=cookies)
                 else:
+                    try:
+                        with open(cookie_file) as f:
+                            rawdata = f.read()
+                        my_cookie = SimpleCookie()
+                        my_cookie.load(rawdata)
+                        cookies = {key: morsel.value for key, morsel in my_cookie.items()}
+                        cookies = cookiejar_from_dict(cookies)
+                    except:
+                        cookies = None
                     r = IMGS_SESSION.get('https://www.pinterest.com/resource/BoardFeedResource/get/'
-                        , params=post_d, timeout=(t, t))
+                        , params=post_d, timeout=(t, t), cookies=cookies)
                 break
             except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
                 time.sleep(5)
-                IMGS_SESSION = get_session(2, proxies)
-
+                IMGS_SESSION = get_session(2, proxies, cookies)
 
         #print('Imgs url ok: ' + str(r.ok))
         #print('Imgs url: ' + r.url)
@@ -1306,7 +1435,7 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
 
         # Create threads
         futures = {executor.submit(download_img, image, save_dir, arg_force_update, arg_img_only, arg_v_only
-                , IMG_SESSION, V_SESSION, PIN_SESSION, proxies, arg_cut, arg_el, fs_f_max) for image in images}
+                , IMG_SESSION, V_SESSION, PIN_SESSION, proxies, cookie_file, arg_cut, arg_el, fs_f_max) for image in images}
 
         # as_completed() gives you the threads once finished
         for index, f in enumerate(as_completed(futures)):
@@ -1326,7 +1455,7 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
 
 def update_all( arg_thread_max :int, arg_cut :int, arg_rescrape :bool
     , arg_img_only, arg_v_only
-    , arg_https_proxy :str, arg_http_proxy :str):
+    , arg_https_proxy :str, arg_http_proxy :str, arg_cookies :str):
 
     bk_cwd = os.path.abspath(os.getcwd())
     cwd_component_total = len(PurePath(os.path.abspath(bk_cwd)).parts[:])
@@ -1402,7 +1531,7 @@ def update_all( arg_thread_max :int, arg_cut :int, arg_rescrape :bool
             #print('run URL:' + input_url)
             while 1:
                 try:
-                    run_library_main(input_url, '.',  arg_thread_max, arg_cut, False, False, False, True, arg_rescrape, arg_img_only, arg_v_only, False, arg_https_proxy, arg_http_proxy)
+                    run_library_main(input_url, '.',  arg_thread_max, arg_cut, False, False, False, True, arg_rescrape, arg_img_only, arg_v_only, False, arg_https_proxy, arg_http_proxy, arg_cookies)
                     break
                 except requests.exceptions.ReadTimeout:
                     cprint(''.join([ HIGHER_RED, '{}'.format('\n[' + x_tag + '] [U] Suddenly not able to connect. Please check your network.\n') ]), attrs=BOLD_ONLY, end='' )
@@ -1411,16 +1540,16 @@ def update_all( arg_thread_max :int, arg_cut :int, arg_rescrape :bool
                     cprint(''.join([ HIGHER_RED, '{}'.format('\n[' + x_tag + '] [U] Not able to connect. Please check your network.\n') ]), attrs=BOLD_ONLY, end='' )
                     time.sleep(5)
 
-
 # Caller script example:
 # import importlib
 # pin_dl = importlib.import_module('pinterest-downloader')
 # pin_dl.run_library_main('antonellomiglio/computer', '.', 0, -1, False, False, False, False, False, False, False, False, None, None)
+
 def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :int
     , arg_board_timestamp :bool, arg_log_timestamp :bool
     , arg_force :bool, arg_exclude_section :bool, arg_rescrape :bool
     , arg_img_only :bool, arg_v_only :bool, arg_update_all :bool
-    , arg_https_proxy :str, arg_http_proxy :str):
+    , arg_https_proxy :str, arg_http_proxy :str, arg_cookies :str):
 
     # Not feasible update based on latest pin if v/img only
     # , unless download zero size img if video only(vice-versa) which seems not desired.
@@ -1428,7 +1557,7 @@ def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :
         arg_rescrape = True
 
     if arg_update_all:
-        return update_all(arg_thread_max, arg_cut, arg_rescrape, arg_img_only, arg_v_only, arg_https_proxy, arg_http_proxy)
+        return update_all(arg_thread_max, arg_cut, arg_rescrape, arg_img_only, arg_v_only, arg_https_proxy, arg_http_proxy, arg_cookies)
 
     start_time = int(time.time())
 
@@ -1488,6 +1617,7 @@ def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :
             fs_f_max = os.statvfs('.').f_namemax
 
     proxies = dict(http=arg_http_proxy, https=arg_https_proxy)
+    cookies = str(arg_cookies)
 
     if len(slash_path) == 2:
         # may copy USERNAME/boards/ links
@@ -1499,10 +1629,10 @@ def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :
             print('[i] Job is download video/image of single pin page.')
             pin_id = slash_path[-1] #bk first before reset 
             slash_path = [] # reset for later in case exception
-            PIN_SESSION = get_session(0, proxies)
-            IMG_SESSION = get_session(3, proxies)
-            V_SESSION = get_session(4, proxies)
-            get_pin_info(pin_id.strip(), arg_log_timestamp, url_path, arg_force, arg_img_only, arg_v_only, arg_dir, arg_cut, arg_el, fs_f_max, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, False)
+            PIN_SESSION = get_session(0, proxies, cookies)
+            IMG_SESSION = get_session(3, proxies, cookies)
+            V_SESSION = get_session(4, proxies, cookies)
+            get_pin_info(pin_id.strip(), arg_log_timestamp, url_path, arg_force, arg_img_only, arg_v_only, arg_dir, arg_cut, arg_el, fs_f_max, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, cookie_file, False)
 
     if len(slash_path) == 3:
         sec_path = '/'.join(slash_path)
@@ -1511,18 +1641,18 @@ def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :
         # Will err if try to create section by naming 'more_ideas'
         if ( slash_path[-3] in ('search', 'categories', 'topics') ) or ( slash_path[-1] in ['more_ideas'] ):
             return quit('{}'.format('\n[' + x_tag + '] Search, Categories, Topics, more_ideas are not supported.\n') )
-        board = get_board_info(sec_path, False, slash_path[-1], board_path, proxies) # need_get_section's True/False not used
+        board = get_board_info(sec_path, False, slash_path[-1], board_path, proxies, cookies) # need_get_section's True/False not used
         try: 
-            PIN_SESSION = get_session(0, proxies)
-            IMGS_SESSION = get_session(2, proxies)
-            IMG_SESSION = get_session(3, proxies)
-            V_SESSION = get_session(4, proxies)
+            PIN_SESSION = get_session(0, proxies, cookies)
+            IMGS_SESSION = get_session(2, proxies, cookies)
+            IMG_SESSION = get_session(3, proxies, cookies)
+            V_SESSION = get_session(4, proxies, cookies)
             fetch_imgs( board, slash_path[-3], slash_path[-2], slash_path[-1], False
                 , arg_board_timestamp, arg_log_timestamp, url_path
                 , arg_force, arg_rescrape, arg_img_only, arg_v_only
                 , arg_dir, arg_thread_max
                 , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, proxies
-                , arg_cut, arg_el, fs_f_max )
+                , cookies, arg_cut, arg_el, fs_f_max )
         except KeyError:
             return quit(traceback.format_exc())
 
@@ -1531,30 +1661,30 @@ def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :
         print('[i] Job is download single board by username/boardname: {}'.format(board_path))
         if slash_path[-2] in ('search', 'categories', 'topics'):
             return quit('{}'.format('\n[' + x_tag + '] Search, Categories and Topics not supported.\n') )
-        board, sections = get_board_info(board_path, arg_exclude_section, None, None, proxies)
+        board, sections = get_board_info(board_path, arg_exclude_section, None, None, proxies, cookies)
         try: 
-            PIN_SESSION = get_session(0, proxies)
-            IMGS_SESSION = get_session(2, proxies)
-            IMG_SESSION = get_session(3, proxies)
-            V_SESSION = get_session(4, proxies)
+            PIN_SESSION = get_session(0, proxies, cookies)
+            IMGS_SESSION = get_session(2, proxies, cookies)
+            IMG_SESSION = get_session(3, proxies, cookies)
+            V_SESSION = get_session(4, proxies, cookies)
             fetch_imgs( board, slash_path[-2], slash_path[-1], None, False
                 , arg_board_timestamp, arg_log_timestamp, url_path
                 , arg_force, arg_rescrape, arg_img_only, arg_v_only
                 , arg_dir, arg_thread_max
                 , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, proxies
-                , arg_cut, arg_el, fs_f_max )
+                , cookies, arg_cut, arg_el, fs_f_max )
             if (not arg_exclude_section) and sections:
                 sec_c = len(sections)
                 print('[i] Trying to get ' + str(sec_c) + ' section{}'.format('s' if sec_c > 1 else ''))
                 for sec in sections:
                     sec_path = board_path + '/' + sec['slug']
-                    board = get_board_info(sec_path, False, sec['slug'], board_path, proxies) # False not using bcoz sections not [] already
+                    board = get_board_info(sec_path, False, sec['slug'], board_path, proxies, cookies) # False not using bcoz sections not [] already
                     fetch_imgs( board, slash_path[-2], slash_path[-1], sec['slug'], False
                         , arg_board_timestamp, arg_log_timestamp, url_path
                         , arg_force, arg_rescrape, arg_img_only, arg_v_only
                         , arg_dir, arg_thread_max
                         , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, proxies
-                        , arg_cut, arg_el, fs_f_max )
+                        , cookies, arg_cut, arg_el, fs_f_max )
 
         except KeyError:
             return quit(traceback.format_exc())
@@ -1564,11 +1694,11 @@ def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :
         if slash_path[-1] in ('search', 'categories', 'topics'):
             return quit('{}'.format('\n[' + x_tag + '] Search, Categories and Topics not supported.\n') )
         try: 
-            boards = fetch_boards( slash_path[-1], proxies )
-            PIN_SESSION = get_session(0, proxies)
-            IMGS_SESSION = get_session(2, proxies)
-            IMG_SESSION = get_session(3, proxies)
-            V_SESSION = get_session(4, proxies)
+            boards = fetch_boards( slash_path[-1], proxies, cookies)
+            PIN_SESSION = get_session(0, proxies, cookies)
+            IMGS_SESSION = get_session(2, proxies, cookies)
+            IMG_SESSION = get_session(3, proxies, cookies)
+            V_SESSION = get_session(4, proxies, cookies)
             # Multiple logs saved inside relevant board dir
             for index, board in enumerate(boards):
                 if 'name' not in board:
@@ -1593,22 +1723,22 @@ def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :
                     , arg_force, arg_rescrape, arg_img_only, arg_v_only
                     , arg_dir, arg_thread_max
                     , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, proxies
-                    , arg_cut, arg_el, fs_f_max )
+                    , cookies, arg_cut, arg_el, fs_f_max )
                 if (not arg_exclude_section) and (board['section_count'] > 0):
                     sec_c = board['section_count']
                     print('[i] Trying to get ' + str(sec_c) + ' section{}'.format('s' if sec_c > 1 else ''))
                     # ags.es placeholder below always False bcoz above already check (not arg_exclude_section) 
-                    board, sections = get_board_info(board_path, False, None, None, proxies)
+                    board, sections = get_board_info(board_path, False, None, None, proxies, cookies)
                     for sec in sections:
                         sec_path = board_path + '/' + sec['slug']
-                        board = get_board_info(sec_path, False, sec['slug'], board_path, proxies) 
+                        board = get_board_info(sec_path, False, sec['slug'], board_path, proxies, cookies) 
                         sec_uname, sec_bname = board_path.split('/')
                         fetch_imgs( board, sec_uname, sec_bname, sec['slug'], False
                             , arg_board_timestamp, arg_log_timestamp, url_path
                             , arg_force, arg_rescrape, arg_img_only, arg_v_only
                             , arg_dir, arg_thread_max
                             , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, proxies
-                            , arg_cut, arg_el, fs_f_max )
+                            , cookies, arg_cut, arg_el, fs_f_max )
 
         except KeyError:
             return quit(traceback.format_exc())
@@ -1619,7 +1749,6 @@ def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :
     except OverflowError:
         # after 999999999 days OR ~2,739,726 years, test case: str(timedelta(seconds= 86400000000000))
         print('Can you revive me please? Thanks.')
-
 
 def run_direct_main():
 
@@ -1643,6 +1772,7 @@ def run_direct_main():
     arg_parser.add_argument('-bt', '--board-timestamp', dest='board_timestamp', action='store_true', help='Suffix board directory name with unique timestamp.')
     arg_parser.add_argument('-lt', '--log-timestamp', dest='log_timestamp', action='store_true', help='Suffix log-pinterest-downloader.log filename with unique timestamp. Default filename is log-pinterest-downloader.log.\n\
         Note: Pin id without Title/Description/Link/Metadata/Created_at will not write to log.')
+    arg_parser.add_argument('-co', '--cookies', help='Set the cookies file to be used to login into Pinterest. Useful for personal Hidden boards')
     arg_parser.add_argument('-f', '--force', action='store_true', help='Force re-download even if image already exist. Normally used with -rs')
     # Need reverse images order(previously is latest to oldest) to avoid abort this need re-download in-between missing images.
     arg_parser.add_argument('-rs', '--re-scrape', dest='rescrape', action='store_true', help='Default is only fetch new images since latest(highest) Pin ID local image to speed up update process.\n\
@@ -1672,9 +1802,8 @@ def run_direct_main():
                             , args.board_timestamp, args.log_timestamp
                             , args.force, args.exclude_section, args.rescrape
                             , args.img_only, args.v_only, args.update_all
-                            , args.https_proxy, args.http_proxy)
+                            , args.https_proxy, args.http_proxy, args.cookies)
     
-
 if __name__ == '__main__':
     try:
         run_direct_main()
@@ -1686,4 +1815,3 @@ if __name__ == '__main__':
         quit('')
     except:
         quit(traceback.format_exc())
-
