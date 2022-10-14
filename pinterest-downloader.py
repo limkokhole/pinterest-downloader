@@ -1036,7 +1036,7 @@ def write_log(arg_timestamp_log, url_path, shortform
         # Don't want combine with old log or else you need open the file to see got title/desc or not even though no content.
         log_url_path = os.path.join(save_dir, 'urls-pinterest-downloader.urls')
 
-        with open(log_url_path, 'w') as f:
+        with open(log_url_path, 'w', encoding="utf-8") as f:
             f.write('Pinterest Downloader: Version ' + str(__version__)  + '\n\n') # Easy to recognize if future want to change something
             # Ensure -ua same parsing format
             f.write('Input URL: https://www.pinterest.com/' + url_path.rstrip('/')  + '/\n') # Reuse/refer when want to update
@@ -1050,7 +1050,7 @@ def write_log(arg_timestamp_log, url_path, shortform
 
         if break_from_latest_pin and not arg_timestamp_log:
             try:
-                with open(log_path) as f:
+                with open(log_path, encoding="utf-8") as f:
                     index_line = [l for l in f.readlines() if l.startswith('[ ')]
                     index_last_tmp = index_line[-1].split('[ ')[1].split(' ]')[0]
                     if index_last_tmp.isdigit():
