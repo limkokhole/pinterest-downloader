@@ -1632,7 +1632,7 @@ def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :
             PIN_SESSION = get_session(0, proxies, cookies)
             IMG_SESSION = get_session(3, proxies, cookies)
             V_SESSION = get_session(4, proxies, cookies)
-            get_pin_info(pin_id.strip(), arg_log_timestamp, url_path, arg_force, arg_img_only, arg_v_only, arg_dir, arg_cut, arg_el, fs_f_max, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, cookie_file, False)
+            get_pin_info(pin_id.strip(), arg_log_timestamp, url_path, arg_force, arg_img_only, arg_v_only, arg_dir, arg_cut, arg_el, fs_f_max, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, cookies, False)
 
     if len(slash_path) == 3:
         sec_path = '/'.join(slash_path)
