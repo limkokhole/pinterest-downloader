@@ -1772,7 +1772,7 @@ def run_direct_main():
     arg_parser.add_argument('-bt', '--board-timestamp', dest='board_timestamp', action='store_true', help='Suffix board directory name with unique timestamp.')
     arg_parser.add_argument('-lt', '--log-timestamp', dest='log_timestamp', action='store_true', help='Suffix log-pinterest-downloader.log filename with unique timestamp. Default filename is log-pinterest-downloader.log.\n\
         Note: Pin id without Title/Description/Link/Metadata/Created_at will not write to log.')
-    arg_parser.add_argument('-co', '--cookies', help='Set the cookies file to be used to login into Pinterest. Useful for personal Hidden boards')
+    arg_parser.add_argument('-co', '--cookies', help='Set the cookies file to be used to login into Pinterest. Useful for personal secret boards.')
     arg_parser.add_argument('-f', '--force', action='store_true', help='Force re-download even if image already exist. Normally used with -rs')
     # Need reverse images order(previously is latest to oldest) to avoid abort this need re-download in-between missing images.
     arg_parser.add_argument('-rs', '--re-scrape', dest='rescrape', action='store_true', help='Default is only fetch new images since latest(highest) Pin ID local image to speed up update process.\n\
