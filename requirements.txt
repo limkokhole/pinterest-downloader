@@ -2,3 +2,4 @@ colorama
 lxml
 requests
 termcolor
+pysocks
