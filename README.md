@@ -17,7 +17,7 @@ Download all images/videos from Pinterest user/board/section.
 - [x] Proxies options. 
 - [x] Speed up existing folder update without re-fetch all pages. 
 - [x] Update all folders option.
-- [x] Can accept cookie (token) file in order to download with your account (useful for hidden boards). Hidden boards can be downloaded only when downloading by user. Example usage: copy your token after login into Pinterest and with its tab selected by using this extension [Get Token Cookie](https://chrome.google.com/webstore/detail/get-token-cookie/naciaagbkifhpnoodlkhbejjldaiffcm) or a similar one of your choice. Paste your token into a file called cookies.txt in the same directory where the pinterest-downloader is. Call the script and add the -co cookies.txt arguments to download your hidden galleries
+- [x] Can accept cookie (token) file in order to download with your account (useful for secret boards). Secret boards can be downloaded only when downloading by user. Example usage: copy your token after login into Pinterest and with its tab selected by using this extension [Get Token Cookie](https://chrome.google.com/webstore/detail/get-token-cookie/naciaagbkifhpnoodlkhbejjldaiffcm) or a similar one of your choice. Paste your token into a file called cookies.txt in the same directory where the pinterest-downloader is. Call the script and add the -co cookies.txt arguments to download your secret galleries
 
 ### Requirements:
 
