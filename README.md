@@ -17,6 +17,7 @@ Download all images/videos from Pinterest user/board/section.
 - [x] Proxies options. 
 - [x] Speed up existing folder update without re-fetch all pages. 
 - [x] Update all folders option.
+- [x] Can accept cookie (token) file in order to download with your account (useful for secret boards). Secret boards can be downloaded only when downloading by user. Example usage: copy your token after login into Pinterest and with its tab selected by using this extension [Get Token Cookie](https://chrome.google.com/webstore/detail/get-token-cookie/naciaagbkifhpnoodlkhbejjldaiffcm) or a similar one of your choice. Paste your token into a file called cookies.txt in the same directory where the pinterest-downloader is. Call the script and add the -co cookies.txt arguments to download your secret galleries
 
 ### Requirements:
 
@@ -83,10 +84,13 @@ Download all images/videos from Pinterest user/board/section.
                             Set proxy for https.
       -p HTTP_PROXY, --http-proxy HTTP_PROXY
                             Set proxy for http.
+      -co COOKIES, --cookies COOKIES
+                            Set the cookies file to be used to login into Pinterest. Useful for personal secret boards.
 
 ### Example Usage:
     $ python3 pinterest-downloader.py # Prompt for insert path. Note: Only support python 3, not python 2
     $ export PYTHONIOENCODING=utf8; python3 pinterest-downloader.py # If you get "'gbk' codec can't encode character" error
+    $ python3 pinterest-downloader.py antonellomiglio -co cookies.txt # need to create the file first
     $ python3 pinterest-downloader.py https://www.pinterest.com/antonellomiglio/computer/ 
     $ python3 pinterest-downloader.py https://www.pinterest.com/antonellomiglio/computer/ -d comp
     $ python3 pinterest-downloader.py -d comp https://www.pinterest.com/antonellomiglio/computer/ # or path in last
