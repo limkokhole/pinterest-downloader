@@ -79,6 +79,7 @@ import argparse
 import time
 from datetime import datetime, timedelta
 
+from collections import OrderedDict
 import json
 import lxml.html as html
 
@@ -223,6 +224,7 @@ def get_pin_info(pin_id, arg_timestamp_log, url_path
 
     scripts = []
     is_success = False
+    image = None
     for t in (15, 30, 40, 50, 60):
         #print('https://www.pinterest.com/pin/{}/'.format(pin_id))
         
@@ -238,39 +240,50 @@ def get_pin_info(pin_id, arg_timestamp_log, url_path
         
         try:
             r = PIN_SESSION.get('https://www.pinterest.com/pin/{}/'.format(pin_id), timeout=(t, t), cookies=cookies)
-            is_success = True
-            break
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
             #print('[E1][pin] Failed. Retry after 5 seconds...')
             time.sleep(5)
             PIN_SESSION = get_session(0, proxies, cookies)
+            continue
 
-    if is_success:
         root = html.fromstring(r.content)
         #print(r.content)
         try:
             #tag = root.xpath("//script[@id='initial-state']")[0]
             scripts = root.xpath('//script/text()')
         except IndexError: #list index out of range
-            is_success = False
+            time.sleep(5)
+            PIN_SESSION = get_session(0, proxies, cookies)
+            continue
+
+        indexErr = False
+        for script in scripts:
+            try:
+                data = json.loads(script)
+                if 'props' in data:
+                    pins = data['props']['initialReduxState']['pins']
+                    try:
+                        image = pins[list(pins.keys())[0]]
+                        is_success = True
+                        break
+                    except IndexError: # Sometime `"pins":{}``, need retry
+                        indexErr = True
+            except json.decoder.JSONDecodeError:
+                pass
+
+        if not is_success:
+            if indexErr:
+                print('\n[Retry] Getting error pin id: ' + repr(pin_id) + '...\n\n')
+            continue
 
     if not is_success:
         if not get_data_only: # get data error show later
+            print('### HTML START ###')
+            print(r.content)
+            print('### HTML END ###\n\nPlease report this issue at https://github.com/limkokhole/pinterest-downloader/issues , thanks.\n\n')
             cprint(''.join([ HIGHER_RED, '%s %s%s' % ('\n[' + x_tag 
                 + '] Get this pin id failed :', pin_id, '\n') ]), attrs=BOLD_ONLY, end='' )
         return
-
-    image = None
-    for script in scripts:
-        try:
-            data = json.loads(script)
-            if 'props' in data:
-                pins = data['props']['initialReduxState']['pins']
-                image = pins[list(pins.keys())[0]]
-                #dj(image)
-                break
-        except json.decoder.JSONDecodeError:
-            pass
 
     if get_data_only:
         return image
@@ -653,6 +666,18 @@ def get_output_file_path(url, arg_cut, fs_f_max, image_id, human_fname, save_dir
     #print('final f: ' + file_path)
     return file_path
 
+def isVideoExist(image):
+    #dj(image)
+    if ('videos' in image) and image['videos']: # image['videos'] may None
+        return 1 # Video type 1 in 'V_720P'
+    elif 'story_pin_data' in image and image['story_pin_data'] and ('pages' in image['story_pin_data']): # image['story_pin_data'] may null
+        pg = image['story_pin_data']['pages']
+        if (len(pg) > 0) and ('blocks' in pg[0]):
+            blocks = pg[0]['blocks']
+            if len(blocks) > 0 and 'video' in blocks[0] and ('video_list' in blocks[0]['video']):
+                return 2 # Video type 2 in 'V_EXP7'
+    return 0 # No video
+
 def download_img(image, save_dir, arg_force_update, arg_img_only, arg_v_only, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, cookie_file, arg_cut, arg_el, fs_f_max):
 
     try:
@@ -862,7 +887,11 @@ def download_img(image, save_dir, arg_force_update, arg_img_only, arg_v_only, IM
         else: 
             pass #print('No image found in this image index. This is normal (may be 1))')
 
-        if not arg_img_only and ('videos' in image) and image['videos']: # image['videos'] may None
+        if not arg_img_only:
+            video_type = isVideoExist(image)
+            if video_type == 0: # No video
+                return
+
             #dj(image, 'before override') # override m3u8-only data with pin details page mp4
             v_pin_id = image['id']
             image = get_pin_info(v_pin_id, None, None, None, False, False, None, None, None, None, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, cookie_file, True)
@@ -871,7 +900,11 @@ def download_img(image, save_dir, arg_force_update, arg_img_only, arg_v_only, IM
                 cprint(''.join([ HIGHER_RED, '%s %s%s' % ('\n[' + x_tag 
                     + '] Get this video pin id failed :', v_pin_id, '\n') ]), attrs=BOLD_ONLY, end='' )
                 return
-            v_d = image['videos']['video_list']
+            if video_type == 1:
+                v_d = image['videos']['video_list']
+            elif video_type == 2: # Already check index/key in isVideoExist()
+                v_d_unsort = image['story_pin_data']['pages'][0]['blocks'][0]['video']['video_list']
+                v_d = OrderedDict(sorted(v_d_unsort.items(), key=lambda t: t[0])) # Sort by V_EXP{3-7} (V_HLSV3_MOBILE will ignore below since not .mp4)
             #dj(v_d)
             vDimens = []
             vDimensD = {}
@@ -882,6 +915,7 @@ def download_img(image, save_dir, arg_force_update, arg_img_only, arg_v_only, IM
             if vDimens:
                 vDimens.sort(key=int)
                 vurl = vDimensD[int(vDimens[-1])]
+                #print('\n' + vurl)
                 #cprint('\n\n[...] Try with best quality video: {}'.format(vurl), attrs=BOLD_ONLY)
 
                 file_path = get_output_file_path(vurl, arg_cut, fs_f_max, image_id, human_fname, save_dir)
