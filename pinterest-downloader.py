@@ -1440,7 +1440,7 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
     if got_img:
         # Always got extra index is not media, so -1 # [UPDATE] single video board might a media
         # Didn't bring loop above detect early
-        if break_from_latest_pin: # Already cut last non-image, so no need -1
+        if break_from_latest_pin: # Already check got video/image for images, so no need -1
             img_total = len(images)
         else:
             img_total = len(images) - 1
@@ -1594,7 +1594,19 @@ def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :
     if not arg_path:
         return quit('Path cannot be empty. ')
 
-    url_path = arg_path.strip().split('?')[0].split('#')[0]
+    proxies = dict(http=arg_http_proxy, https=arg_https_proxy)
+    cookies = str(arg_cookies)
+
+    arg_path = arg_path.strip()
+    if arg_path.startswith('https://pin.it/'):
+        print('[i] Try to expand shorten url')
+        SHARE_SESSION = get_session(0, proxies, cookies)
+        r = SHARE_SESSION.get(arg_path, timeout=(15, 15))
+        if (r.status_code == 200) and '/sent' in r.url:
+            arg_path = r.url.split('/sent')[0]
+            print('[i] Pin url is: ' + arg_path + '/') # may err without trailing '/'
+
+    url_path = arg_path.split('?')[0].split('#')[0]
     # Convert % format of unicode url when copied from Firefox 
     # This is important especially section need compare the section name later
     url_path = unquote(url_path).rstrip('/')
@@ -1645,9 +1657,6 @@ def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :
         if fs_f_max is None: # os.statvfs ,ay not avaiable in Windows, so lower priority
             #os.statvfs('.').f_frsize - 1 = 4095 # full path max bytes
             fs_f_max = os.statvfs('.').f_namemax
-
-    proxies = dict(http=arg_http_proxy, https=arg_https_proxy)
-    cookies = str(arg_cookies)
 
     if len(slash_path) == 2:
         # may copy USERNAME/boards/ links
