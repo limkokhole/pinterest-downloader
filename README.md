@@ -21,7 +21,7 @@ Download all images/videos from Pinterest user/board/section.
 
 ### Requirements:
 
-    $ python3 -m pip install -r requirements.txt 
+    $ python3 -m pip install --upgrade -r requirements.txt 
 
 ### Usage:
 

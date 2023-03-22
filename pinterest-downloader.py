@@ -92,8 +92,11 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from http.cookies import SimpleCookie
 from requests.cookies import cookiejar_from_dict
 
+from fake_useragent import UserAgent
+ua = UserAgent()
 # RIP UA, https://groups.google.com/a/chromium.org/forum/m/#!msg/blink-dev/-2JIRNMWJ7s/yHe4tQNLCgAJ
-UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.0.0 Safari/537.36'
+#UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.0.0 Safari/537.36'
+UA = ua.chrome
 
 # MAX_PATH 260 need exclude 1 terminating null character <NUL>
 # if prefix \\?\ + abspath to use Windows extented-length(i.e. in my case, individual filename/dir can use full 259, no more 259 is fit full path), then the MAX_PATH is 259 - 4 = 255
@@ -1596,6 +1599,7 @@ def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :
 
     proxies = dict(http=arg_http_proxy, https=arg_https_proxy)
     cookies = str(arg_cookies)
+    print('User Agent: ' + UA)
 
     arg_path = arg_path.strip()
     if arg_path.startswith('https://pin.it/'):
