@@ -1060,6 +1060,7 @@ def write_log(arg_timestamp_log, url_path, shortform
             
     if images:
         #dj(images)
+        #print('len(images) IF: ' + str(len(images)))
         index_last = 0
         existing_indexes = []
 
@@ -1083,9 +1084,13 @@ def write_log(arg_timestamp_log, url_path, shortform
             if pin:
                 img_total = 1
             elif break_from_latest_pin: # Already cut last non-image, so no need -1
-                img_total = len(images)
+                img_total = len(images) # possible single video without extra padding, so still need loop all+check id/image/video to get real total count
             else:
                 img_total = len(images) - 1
+                if img_total == 0:
+                    if ( (not arg_img_only and isVideoExist(images[0])) \
+                        or (not arg_v_only and ('images' in images[0])) ):
+                        img_total = 1 # 1st index may valid item if single video in board
             if img_total == 0: # No need create log when empty folder, but still created .urls above
                 return False
             else:
@@ -1105,14 +1110,18 @@ def write_log(arg_timestamp_log, url_path, shortform
                 continue
             got_img = True
             image_id = image['id']
+            #print('valid id:' + str(image_id))
             if image_id in existing_indexes: 
+                print('dup image_id ' + str(image_id))
                 # Still got_img True to try re-download flow since only want to ensure log don't want duplicated if reorder
                 continue
             # Exclude image log if --video-only, and vice-versa.
-            if not ( (not arg_img_only and ('videos' in image) and image['videos']) \
+            if not ( (not arg_img_only and isVideoExist(image)) \
                     or (not arg_v_only and ('images' in image)) ):
                 skipped_total+=1
                 continue
+
+            #print('last:'+str(index_last) + ' curr_i:' + str(log_i) + ' curr:' + str(skipped_total))
 
             #dj(image)
             #print('got img: ' + image_id) # Possible got id but empty section
@@ -1138,6 +1147,8 @@ def write_log(arg_timestamp_log, url_path, shortform
                 try:
                     # Windows need utf-8
                     with open(log_path, 'a', encoding='utf-8') as f:
+                        #print('last index:'+ str(index_last) + ' curr_i:' + str(log_i) + ' curr:' + str(skipped_total))
+                        #print('last log:'+ str(index_last + log_i + 1 - skipped_total))
                         f.write('[ ' + str(index_last + log_i + 1 - skipped_total) + ' ] Pin Id: ' + str(image_id) + '\n')
                         f.write(story + '\n\n')
                 except OSError: # e.g. File name too long
@@ -1375,7 +1386,7 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
             #, but API only return single item, so no nid handle equal flow
             for img_round_i, img in enumerate(imgs_round):
                 #print('Check: ' + repr(img['id']))
-                if (('videos' in img) and img['videos']) or 'images' in img:
+                if (isVideoExist(img)) or 'images' in img:
                     if img['id'].isdigit():
                         img_curr = img['id']
                         if img_prev and (int(img_curr) > int(img_prev)):
@@ -1427,12 +1438,16 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
     got_img = write_log(arg_timestamp_log, url_path, shortform, arg_img_only, arg_v_only, save_dir, images, None, arg_cut, break_from_latest_pin)
 
     if got_img:
-        # Always got extra index is not media, so -1
+        # Always got extra index is not media, so -1 # [UPDATE] single video board might a media
         # Didn't bring loop above detect early
         if break_from_latest_pin: # Already cut last non-image, so no need -1
             img_total = len(images)
         else:
             img_total = len(images) - 1
+            if img_total == 0:
+                if ( (not arg_img_only and isVideoExist(images[0])) \
+                    or (not arg_v_only and ('images' in images[0])) ):
+                    img_total = 1 # 1st index may valid item if single video in board
         if img_total == 0:
             print('\n[i] No {}item found.'.format('new ' if break_from_latest_pin else  ''))
             return
