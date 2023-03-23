@@ -1363,6 +1363,12 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
                         cookies = None
                     r = IMGS_SESSION.get('https://www.pinterest.com/resource/BoardFeedResource/get/'
                         , params=post_d, timeout=(t, t), cookies=cookies)
+                data = r.json()
+                if data == None:
+                    cprint(''.join([ HIGHER_YELLOW, '%s' % ('Failed. Retry after 30 seconds.') ]), attrs=BOLD_ONLY, end='\n' )
+                    time.sleep(30)
+                    IMGS_SESSION = get_session(2, proxies, cookies)
+                    continue # Retry for issues #19
                 break
             except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
                 time.sleep(5)
@@ -1370,11 +1376,10 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
 
         #print('Imgs url ok: ' + str(r.ok))
         #print('Imgs url: ' + r.url)
-        data = r.json()
         #dj(data, 'imgs loop raw')
         # Useful for debug with print only specific id log
         #if 'e07614d79a22d22c83d51649e2e01e43' in repr(data):
-        #print('res data: ' + repr(data))
+        #    print('res data: ' + repr(data))
         imgs_round = data['resource_response']['data']
 
         #print()
