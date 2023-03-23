@@ -111,6 +111,7 @@ Download all images/videos from Pinterest user/board/section.
 
 ### Example Output:
     xb@dnxb:~/Downloads/pinterest/pinterest-downloader$ python3 pinterest-downloader.py -d comp https://www.pinterest.com/antonellomiglio/computer/ 
+    [i] User Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_2) AppleWebKit/535.11 (KHTML, like Gecko) Chrome/17.0.963.65 Safari/535.11
     [...] Getting all images in this board: computer ... [ 173 / ? ] [➕] Found 195 image/videos
     Download into directory:  comp/antonellomiglio/Computer/
     [✔] Downloaded: |##################################################| 100.0% Complete   
@@ -118,6 +119,7 @@ Download all images/videos from Pinterest user/board/section.
 
 ##### Rerun(ensure same directory) will no new item found since latest pin Id file:
     xb@dnxb:~/Downloads/pinterest/pinterest-downloader$ python3 pinterest-downloader.py -d comp https://www.pinterest.com/antonellomiglio/computer/
+    [i] User Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_2) AppleWebKit/535.11 (KHTML, like Gecko) Chrome/17.0.963.65 Safari/535.11
     [i] Job is download single board by username/boardname: antonellomiglio/computer
     [...] Getting all images in this board: computer ... [ 0 / ? ]
     [i] No new item found.
@@ -125,6 +127,7 @@ Download all images/videos from Pinterest user/board/section.
 
 ##### Rerun in future(upload or delete highest pin id files to test) to fetch new items only which Pin IDs higher than existing Pin ID, speed up without fetch all pages for large board(use -rs if user reordered concerns):
     xb@dnxb:~/Downloads/pinterest/pinterest-downloader$ python3 pinterest-downloader.py -d comp https://www.pinterest.com/antonellomiglio/computer/
+    [i] User Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_2) AppleWebKit/535.11 (KHTML, like Gecko) Chrome/17.0.963.65 Safari/535.11
     [i] Job is download single board by username/boardname: antonellomiglio/computer
     [...] Getting all images in this board: computer ... [ 0 / ? ] [➕] Found 5 new image/videos
     Download into directory:  comp/antonellomiglio/Computer/
