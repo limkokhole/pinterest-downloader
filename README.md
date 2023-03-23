@@ -108,6 +108,7 @@ Download all images/videos from Pinterest user/board/section.
     $ pin Foodrecipessmith/food-recipes # Download boards with shortform instead of link
     $ pin Foodrecipessmith/food-recipes/condiments # Download section with shortform instead of link
     $ pin pin/819444094683773705 # Download pin with shortform instead of link
+    $ pin https://pin.it/3xa5RlZ # Download pin with shortern/share link
 
 ### Example Output:
     xb@dnxb:~/Downloads/pinterest/pinterest-downloader$ python3 pinterest-downloader.py -d comp https://www.pinterest.com/antonellomiglio/computer/ 
