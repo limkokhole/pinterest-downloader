@@ -1599,7 +1599,7 @@ def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :
 
     proxies = dict(http=arg_http_proxy, https=arg_https_proxy)
     cookies = str(arg_cookies)
-    print('User Agent: ' + UA)
+    print('[i] User Agent: ' + UA)
 
     arg_path = arg_path.strip()
     if arg_path.startswith('https://pin.it/'):
