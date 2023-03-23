@@ -1364,7 +1364,7 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
                     r = IMGS_SESSION.get('https://www.pinterest.com/resource/BoardFeedResource/get/'
                         , params=post_d, timeout=(t, t), cookies=cookies)
                 data = r.json()
-                if data is None:
+                if data['resource_response']['data'] is None:
                     cprint(''.join([ HIGHER_YELLOW, '%s' % ('Failed. Retry after 30 seconds.') ]), attrs=BOLD_ONLY, end='\n' )
                     time.sleep(30)
                     IMGS_SESSION = get_session(2, proxies, cookies)
