@@ -197,7 +197,7 @@ def get_session(ver_i, proxies, cookie_file):
             'User-Agent': UA,
             'Accept': 'application/json, text/javascript, */*, q=0.01',
             'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate, br',
+            'Accept-Encoding': 'gzip, deflate, utf-8',
             'Referer': 'https://www.pinterest.com/',
             'X-Requested-With': 'XMLHttpRequest',
             'X-APP-VERSION': VER[ver_i],
@@ -1080,7 +1080,7 @@ def write_log(arg_timestamp_log, url_path, shortform
                 cprint(''.join([ HIGHER_YELLOW, '%s' % ('\nWrite log increment from last log stored index failed. Fallback to -lt\n\n') ]), attrs=BOLD_ONLY, end='' )  
                 log_timestamp = 'log-pinterest-downloader_' + datetime.now().strftime('%Y-%m-%d %H.%M.%S')
                 log_path = os.path.join(save_dir, '{}'.format( sanitize(log_timestamp) + '.log' ))
-                with open(log_path, 'w') as f: # Refer below else:
+                with open(log_path, 'w', encoding='utf-8') as f: # Refer below else:
                     f.write('Pinterest Downloader: Version ' + str(__version__)  + '\n\n') 
         else:
 
@@ -1097,7 +1097,7 @@ def write_log(arg_timestamp_log, url_path, shortform
             if img_total == 0: # No need create log when empty folder, but still created .urls above
                 return False
             else:
-                with open(log_path, 'w') as f: # Reset before append
+                with open(log_path, 'w', encoding='utf-8') as f: # Reset before append
                     f.write('Pinterest Downloader: Version ' + str(__version__)  + '\n\n') # Easy to recognize if future want to change something
                     f.write('Input URL: https://www.pinterest.com/' + url_path.rstrip('/')  + '/\n') # Reuse/refer when want to update
                     if shortform: # single pin no need
