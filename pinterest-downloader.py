@@ -197,7 +197,7 @@ def get_session(ver_i, proxies, cookie_file):
             'User-Agent': UA,
             'Accept': 'application/json, text/javascript, */*, q=0.01',
             'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate, utf-8',
+            'Accept-Encoding': 'gzip, deflate, br',
             'Referer': 'https://www.pinterest.com/',
             'X-Requested-With': 'XMLHttpRequest',
             'X-APP-VERSION': VER[ver_i],
