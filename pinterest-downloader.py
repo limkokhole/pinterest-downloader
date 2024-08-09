@@ -74,7 +74,7 @@ except Exception: #UnicodeEncodeError: # Will error later if not do this, so bet
     cprint(''.join([ HIGHER_RED, '%s' % ('Please run `export PYTHONIOENCODING=utf-8;` to support Unicode.') ]), attrs=BOLD_ONLY, end='\n' )
     quit('')
     sys.exit(1)
-     
+
 import argparse
 import time
 from datetime import datetime, timedelta
@@ -137,23 +137,23 @@ VER = (None, 'c643827', '4c8c36f')
 def get_session(ver_i, proxies, cookie_file):
     s = requests.Session()
     s.proxies = proxies
-    
+
     try:
         with open(cookie_file) as f:
             rawdata = f.read()
-            
+
         my_cookie = SimpleCookie()
         my_cookie.load(rawdata)
         cookies = {key: morsel.value for key, morsel in my_cookie.items()}
 
     except:
         cookies = None
-        
+
     try:
         s.cookies = cookiejar_from_dict(cookies)
     except:
         pass
-    
+
     if ver_i == 0:
         s.headers = {
             #'Host': 'www.pinterest.com',
@@ -178,7 +178,7 @@ def get_session(ver_i, proxies, cookie_file):
         }
 
     elif ver_i == 4:
-        # 'https://v.pinimg.com/videos/mc/hls/8a/99/7d/8a997df97cab576795be2a4490457ea3.m3u8' 
+        # 'https://v.pinimg.com/videos/mc/hls/8a/99/7d/8a997df97cab576795be2a4490457ea3.m3u8'
         s.headers = {
             'User-Agent': UA,
             'Accept': '*/*',
@@ -230,7 +230,7 @@ def get_pin_info(pin_id, arg_timestamp_log, url_path
     image = None
     for t in (15, 30, 40, 50, 60):
         #print('https://www.pinterest.com/pin/{}/'.format(pin_id))
-        
+
         try:
             with open(cookie_file) as f:
                 rawdata = f.read()
@@ -240,7 +240,7 @@ def get_pin_info(pin_id, arg_timestamp_log, url_path
             cookies = cookiejar_from_dict(cookies)
         except:
             cookies = None
-        
+
         try:
             r = PIN_SESSION.get('https://www.pinterest.com/pin/{}/'.format(pin_id), timeout=(t, t), cookies=cookies)
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
@@ -263,8 +263,8 @@ def get_pin_info(pin_id, arg_timestamp_log, url_path
         for script in scripts:
             try:
                 data = json.loads(script)
-                if 'props' in data:
-                    pins = data['props']['initialReduxState']['pins']
+                if 'initialReduxState' in data:
+                    pins = data['initialReduxState']['pins']
                     try:
                         image = pins[list(pins.keys())[0]]
                         is_success = True
@@ -284,7 +284,7 @@ def get_pin_info(pin_id, arg_timestamp_log, url_path
             print('### HTML START ###')
             print(r.content)
             print('### HTML END ###\n\nPlease report this issue at https://github.com/limkokhole/pinterest-downloader/issues , thanks.\n\n')
-            cprint(''.join([ HIGHER_RED, '%s %s%s' % ('\n[' + x_tag 
+            cprint(''.join([ HIGHER_RED, '%s %s%s' % ('\n[' + x_tag
                 + '] Get this pin id failed :', pin_id, '\n') ]), attrs=BOLD_ONLY, end='' )
         return
 
@@ -314,10 +314,10 @@ def get_board_info(board_or_sec_path, exclude_section, section, board_path, prox
         cookies = cookiejar_from_dict(cookies)
     except:
         cookies = None
-        
+
     s = get_session(0, proxies, cookies)
     #s.cookies = cookies
-    
+
     #dj(data, 'board main')
     boards = {}
     sections = []
@@ -352,19 +352,19 @@ def get_board_info(board_or_sec_path, exclude_section, section, board_path, prox
         for script in scripts:
             try:
                 data = json.loads(script)
-                if 'props' in data:
+                if 'initialReduxState' in data:
                     #dj(data)
-                    board_d = data['props']['initialReduxState']['boards']
+                    board_d = data['initialReduxState']['boards']
                     #dj(board_d)
-                    board_sec_d = data['props']['initialReduxState']['boardsections']
+                    board_sec_d = data['initialReduxState']['boardsections']
                     #dj(board_sec_d)
                     is_success = True
                     break
             except json.decoder.JSONDecodeError:
                 is_success = False
-            
+
     if not is_success:
-        cprint(''.join([ HIGHER_RED, '%s %s%s' % ('\n[' + x_tag 
+        cprint(''.join([ HIGHER_RED, '%s %s%s' % ('\n[' + x_tag
             + '] Get this board/section failed :', board_or_sec_path, '\n') ]), attrs=BOLD_ONLY, end='' )
         if section:
             return boards
@@ -389,7 +389,7 @@ def get_board_info(board_or_sec_path, exclude_section, section, board_path, prox
             board_d_map['section_count'] = b_dk.get('section_count', '')
             boards['board'] = board_d_map;
             break
-        
+
     if not exclude_section:
         board_sec_dk = list(board_sec_d.keys())
         for k in board_sec_dk:
@@ -411,7 +411,7 @@ def get_board_info(board_or_sec_path, exclude_section, section, board_path, prox
                 boards['section'] = sec_d_map
             else:
                 sections.append(sec_d_map)
-            
+
     #dj(board_d, 'board raw')
     #dj(boards, 'boarded')
     #dj(board_sec_d, 'sect raw')
@@ -433,7 +433,7 @@ def fetch_boards(uname, proxies, cookie_file):
         cookies = cookiejar_from_dict(cookies)
     except:
         cookies = None
-        
+
     s = get_session(1, proxies, cookies)
     #s.cookies = cookies
 
@@ -450,7 +450,7 @@ def fetch_boards(uname, proxies, cookie_file):
         options = {
         'isPrefetch': 'false',
         'privacy_filter': 'all',
-        'sort': 'alphabetical', 
+        'sort': 'alphabetical',
         'field_set_key': 'profile_grid_item',
         'username': uname,
         'page_size': 25,
@@ -494,7 +494,7 @@ def fetch_boards(uname, proxies, cookie_file):
                 cookies = cookiejar_from_dict(cookies)
             except:
                 cookies = None
-            try:  
+            try:
                 r = s.get('https://www.pinterest.com/resource/BoardsResource/get/', params=post_d, timeout=(t, t), cookies=cookies)
                 is_success = True
                 break
@@ -503,7 +503,7 @@ def fetch_boards(uname, proxies, cookie_file):
                 s = get_session(1, proxies, cookies)
                 #s.cookies = cookies
         if not is_success:
-            cprint(''.join([ HIGHER_RED, '%s %s%s' % ('\n[' + x_tag 
+            cprint(''.join([ HIGHER_RED, '%s %s%s' % ('\n[' + x_tag
                 + '] Get this username failed :', uname, '\n') ]), attrs=BOLD_ONLY, end='' )
             break
         #print('[Boards url]: ' + r.url)
@@ -513,7 +513,7 @@ def fetch_boards(uname, proxies, cookie_file):
             boards.extend(data['resource_response']['data'])
             bookmark = data['resource']['options']['bookmarks'][0]
         except TypeError: # Normal if invalid username
-            cprint(''.join([ HIGHER_RED, '%s' % ('\n[' + x_tag + '] Possible invalid username.\n\n') ]), attrs=BOLD_ONLY, end='' ) 
+            cprint(''.join([ HIGHER_RED, '%s' % ('\n[' + x_tag + '] Possible invalid username.\n\n') ]), attrs=BOLD_ONLY, end='' )
             break
 
     b_len = len(boards)
@@ -529,17 +529,17 @@ def sanitize(path):
     #>>> os.path.basename('/home/iced/..'.replace('..', '')) # get empty ''
     # Ensure .replace('..', '') is last replacement before .strip() AND not replace back to dot '.'
     # https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
-    
+
     # [todo:0] Handle case sensitive and reserved file names in Windows like Chrome "Save page as" do
-    # For portable to move filename between linux <-> win, should use IS_WIN only (but still can't care if case sensitive filename move to case in-sensitive filesystem). 
+    # For portable to move filename between linux <-> win, should use IS_WIN only (but still can't care if case sensitive filename move to case in-sensitive filesystem).
     # IS_WIN:
     path = path.replace('<', '').replace('>', '').replace('"', '\'').replace('?', '').replace('*', '').replace('/', '_').replace('\\', '_').replace('|', '_').replace(':', '_').replace('.', '_').strip()
     # Linux:
     #path.replace('/', '|').replace(':', '_').replace('.', '_').strip()
 
     # Put this after replace patterns above bcoz 2 distinct spaces may merge together become multiple-spaces, e.g. after ' ? ' replace to '  '
-    # If using .replace('  ', ' ') will only replace once round, e.g. '    ' become 
-    path = ' '.join(path.split()) 
+    # If using .replace('  ', ' ') will only replace once round, e.g. '    ' become
+    path = ' '.join(path.split())
 
     p = PurePath( path )
 
@@ -589,7 +589,7 @@ def get_max_path(arg_cut, fs_f_max, fpart_excluded_immutable, immutable):
     if fpart_excluded_immutable_base != fpart_excluded_immutable.strip(): # Original need strip bcoz it might cut in space
         cprint(''.join([ HIGHER_RED, '\n[! A] Please report to me which Link/scenario it print this log.\
             Thanks:\n{} # {} # {} # {} # {}\n\n'
-            .format(arg_cut, fs_f_max, repr(fpart_excluded_immutable), repr(fpart_excluded_immutable_base), immutable) ]), attrs=BOLD_ONLY, end='' )  
+            .format(arg_cut, fs_f_max, repr(fpart_excluded_immutable), repr(fpart_excluded_immutable_base), immutable) ]), attrs=BOLD_ONLY, end='' )
     return fpart_excluded_immutable_base
 
 def get_output_file_path(url, arg_cut, fs_f_max, image_id, human_fname, save_dir):
@@ -606,18 +606,18 @@ def get_output_file_path(url, arg_cut, fs_f_max, image_id, human_fname, save_dir
     if not ext.strip(): # Ensure add hard-coded extension to avoid empty id and leave single dot in next step
         ext = 'unknown'
     # Currently not possible ..jpg here bcoz above must single '.' do not throws
-    # , even replace ..jpg to _.jpg is fine, just can't preview in explorer only 
+    # , even replace ..jpg to _.jpg is fine, just can't preview in explorer only
     immutable = sanitize( pin_id_str + '.' +  ext )
 
     fpart_excluded_ext_before  = sanitize( human_fname )
     #print( 'get output f:' + repr(fpart_excluded_ext_before) )
 
     # [DEPRECATED, now always use extended length which apply to single component instead of full path]
-    #if IS_WIN: # Windows MAX_PATH 260 is full path not single component (https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file , https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file#maximum-path-length-limitation) 
+    #if IS_WIN: # Windows MAX_PATH 260 is full path not single component (https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file , https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file#maximum-path-length-limitation)
     #    immutable_file_path = os.path.abspath( os.path.join(save_dir, '{}'.format( immutable)) )
     #    fpart_excluded_ext = get_max_path(arg_cut, fs_f_max, fpart_excluded_ext_before
     #        , immutable_file_path)
-    #else:    
+    #else:
     fpart_excluded_ext = get_max_path(arg_cut, fs_f_max, fpart_excluded_ext_before
             , immutable)
     if fpart_excluded_ext:
@@ -654,17 +654,17 @@ def get_output_file_path(url, arg_cut, fs_f_max, image_id, human_fname, save_dir
         if PurePath(os.path.abspath(save_dir)).parts[:] != PurePath(file_path).parts[:-1]:
             cprint(''.join([ HIGHER_RED, '\n[! B] Please report to me which Link/scenario it print this log.\
                 Thanks: {} # {} # {} # {} # {} \n\n'
-                .format(arg_cut, fs_f_max, pin_id_str + fpart_excluded_ext + '.' +  ext, save_dir, file_path) ]), attrs=BOLD_ONLY, end='' )  
+                .format(arg_cut, fs_f_max, pin_id_str + fpart_excluded_ext + '.' +  ext, save_dir, file_path) ]), attrs=BOLD_ONLY, end='' )
             file_path = os.path.join(save_dir, '{}'.format( sanitize(pin_id_str + fpart_excluded_ext + '.' +  ext)))
             if PurePath(os.path.abspath(save_dir)).parts[:] != PurePath(file_path).parts[:-1]:
                 cprint(''.join([ HIGHER_RED, '\n[! C] Please report to me which Link/scenario it print this log.\
                     Thanks: {} # {} # {} # {} # {} \n\n'
-                    .format(arg_cut, fs_f_max, pin_id_str + fpart_excluded_ext + '.' +  ext, save_dir, file_path) ]), attrs=BOLD_ONLY, end='' )  
+                    .format(arg_cut, fs_f_max, pin_id_str + fpart_excluded_ext + '.' +  ext, save_dir, file_path) ]), attrs=BOLD_ONLY, end='' )
                 raise
     except IndexError:
         cprint(''.join([ HIGHER_RED, '\n[! D] Please report to me which Link/scenario it print this log.\
             Thanks: {} # {} # {}\n\n'
-            .format(arg_cut, fs_f_max, pin_id_str + fpart_excluded_ext + '.' +  ext) ]), attrs=BOLD_ONLY, end='' )  
+            .format(arg_cut, fs_f_max, pin_id_str + fpart_excluded_ext + '.' +  ext) ]), attrs=BOLD_ONLY, end='' )
         raise
     #print('final f: ' + file_path)
     return file_path
@@ -709,7 +709,7 @@ def download_img(image, save_dir, arg_force_update, arg_img_only, arg_v_only, IM
             human_fname = '_'.join([human_fname, img_created_at])
         # Avoid DD/MM/YYYY truncated when do basename
         # But inside get_output_file_path got sanitize also # So no need do here
-        # human_fname = human_fname.replace('/', '|').replace(':', '_') 
+        # human_fname = human_fname.replace('/', '|').replace(':', '_')
 
         #print(human_fname)
 
@@ -722,10 +722,10 @@ def download_img(image, save_dir, arg_force_update, arg_img_only, arg_v_only, IM
             #human_fname = hn_bk # TESTING -el
             if arg_el:
                 file_path = '\\\\?\\' + os.path.abspath(file_path)
-            
+
             if not os.path.exists(file_path) or arg_force_update:
                 #print(IMG_SESSION.headers)
-                
+
                 #url = 'https://httpbin.org/get'
                 is_ok = False
                 for t in (15, 30, 40, 50, 60):
@@ -748,7 +748,7 @@ def download_img(image, save_dir, arg_force_update, arg_img_only, arg_v_only, IM
                         time.sleep(5)
                         IMG_SESSION = get_session(3, proxies, cookies)
                         #cprint(''.join([ HIGHER_RED, '{}'.format('\n[' + x_tag + '] Image Timeout (Retry next).\n') ]), attrs=BOLD_ONLY, end='' )
-                
+
                 #print(url + ' ok? '  + str(r.ok))
 
                 #print('https://www.pinterest.com/pin/' + image['id'])
@@ -772,7 +772,7 @@ def download_img(image, save_dir, arg_force_update, arg_img_only, arg_v_only, IM
                                     cookies = cookiejar_from_dict(cookies)
                                 except:
                                     cookies = None
-                                try:   
+                                try:
                                     IMG_SESSION_RETY = get_session(3, proxies, cookies)
                                     r = IMG_SESSION_RETY.get(url, stream=True, timeout=(t, t), cookies=cookies) # Need higher timeout
                                     with open(file_path, 'wb') as f:
@@ -786,12 +786,12 @@ def download_img(image, save_dir, arg_force_update, arg_img_only, arg_v_only, IM
                             if not is_success:
                                 cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this image at'
                                 , file_path, 'failed URL:', url, '\n') ]), attrs=BOLD_ONLY, end='' )
-                                cprint(''.join([ HIGHER_RED, '%s' % ('\n[e1] You may want to delete this image manually and retry later(with -rs or try with single pin ' 
-                                + ('https://www.pinterest.com/pin/' + repr(image['id']).strip("'")  ) + ').\n\n') ]), attrs=BOLD_ONLY, end='' )  
+                                cprint(''.join([ HIGHER_RED, '%s' % ('\n[e1] You may want to delete this image manually and retry later(with -rs or try with single pin '
+                                + ('https://www.pinterest.com/pin/' + repr(image['id']).strip("'")  ) + ').\n\n') ]), attrs=BOLD_ONLY, end='' )
                     except OSError: # e.g. File name too long
                         cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this image at'
                             , file_path, 'failed :', url, '\n') ]), attrs=BOLD_ONLY, end='' )
-                        cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), attrs=BOLD_ONLY, end='' )  
+                        cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), attrs=BOLD_ONLY, end='' )
                         return quit(traceback.format_exc())
 
                 else:
@@ -812,7 +812,7 @@ def download_img(image, save_dir, arg_force_update, arg_img_only, arg_v_only, IM
                         file_path = get_output_file_path(url, arg_cut, fs_f_max, image_id, human_fname, save_dir)
                         if arg_el:
                             file_path = '\\\\?\\' + os.path.abspath(file_path)
-                        
+
                         if not os.path.exists(file_path) or arg_force_update:
                             is_ok = False
                             for t in (15, 30, 40, 50, 60):
@@ -828,7 +828,7 @@ def download_img(image, save_dir, arg_force_update, arg_img_only, arg_v_only, IM
                                 try:
                                     # timeout=(connect_timeout, read_timeout)
                                     # https://github.com/psf/requests/issues/3099#issuecomment-215498005
-                                   
+
                                     r = IMG_SESSION.get(url, stream=True, timeout=(t, t), cookies=cookies)
                                     is_ok = True
                                     break
@@ -869,12 +869,12 @@ def download_img(image, save_dir, arg_force_update, arg_img_only, arg_v_only, IM
                                     if not is_success:
                                         cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this image at'
                                             , file_path, 'failed :', url, '\n') ]), attrs=BOLD_ONLY, end='' )
-                                        cprint(''.join([ HIGHER_RED, '%s' % ('\n[e2] You may want to delete this image manually and retry later.\n\n') ]), attrs=BOLD_ONLY, end='' )  
+                                        cprint(''.join([ HIGHER_RED, '%s' % ('\n[e2] You may want to delete this image manually and retry later.\n\n') ]), attrs=BOLD_ONLY, end='' )
 
                                 except OSError: # e.g. File name too long
                                     cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Retried this image at'
                                         , file_path, 'failed :', url, '\n') ]), attrs=BOLD_ONLY, end='' )
-                                    cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), attrs=BOLD_ONLY, end='' )  
+                                    cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), attrs=BOLD_ONLY, end='' )
                                     return quit(traceback.format_exc())
 
                                 #print('\n\n[' + plus_tag + '] ', end='') # konsole has issue if BOLD_ONLY with cprint with plus_tag
@@ -887,7 +887,7 @@ def download_img(image, save_dir, arg_force_update, arg_img_only, arg_v_only, IM
                         else:
                             pass #cprint('\nFile at {} already exist.\n'.format(file_path), attrs=BOLD_ONLY)
 
-        else: 
+        else:
             pass #print('No image found in this image index. This is normal (may be 1))')
 
         if not arg_img_only:
@@ -900,7 +900,7 @@ def download_img(image, save_dir, arg_force_update, arg_img_only, arg_v_only, IM
             image = get_pin_info(v_pin_id, None, None, None, False, False, None, None, None, None, IMG_SESSION, V_SESSION, PIN_SESSION, proxies, cookie_file, True)
             #dj(image, 'after override') # [todo:0] Rich Metadata for video write to log (only pin can get)
             if not image:
-                cprint(''.join([ HIGHER_RED, '%s %s%s' % ('\n[' + x_tag 
+                cprint(''.join([ HIGHER_RED, '%s %s%s' % ('\n[' + x_tag
                     + '] Get this video pin id failed :', v_pin_id, '\n') ]), attrs=BOLD_ONLY, end='' )
                 return
             if video_type == 1:
@@ -930,7 +930,7 @@ def download_img(image, save_dir, arg_force_update, arg_img_only, arg_v_only, IM
                     file_path = '\\\\?\\' + os.path.abspath(file_path)
 
                 if not os.path.exists(file_path) or arg_force_update:
-                   
+
                     is_ok = False
                     for t in (15, 30, 40, 50, 60):
                         try:
@@ -950,7 +950,7 @@ def download_img(image, save_dir, arg_force_update, arg_img_only, arg_v_only, IM
                             # Shouldn't print bcoz quite common
                             time.sleep(5) #cprint(''.join([ HIGHER_RED, '{}'.format('\n[' + x_tag + '] Video Timeout (Retry next).\n') ]), attrs=BOLD_ONLY, end='' )
                             V_SESSION = get_session(4, proxies, cookies)
-                    
+
                     #print(vurl + ' ok? '  + str(r.ok))
 
                     if is_ok and r.ok:
@@ -988,12 +988,12 @@ def download_img(image, save_dir, arg_force_update, arg_img_only, arg_v_only, IM
                             if not is_success:
                                 cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this video at'
                                     , file_path, 'failed :', vurl, '\n') ]), attrs=BOLD_ONLY, end='' )
-                                cprint(''.join([ HIGHER_RED, '%s' % ('\n[e3] You may want to delete this video manually and retry later.\n\n') ]), attrs=BOLD_ONLY, end='' )  
+                                cprint(''.join([ HIGHER_RED, '%s' % ('\n[e3] You may want to delete this video manually and retry later.\n\n') ]), attrs=BOLD_ONLY, end='' )
                         except OSError: # e.g. File name still too long
                             cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this video at'
                                 , file_path, 'failed :', vurl, '\n') ]), attrs=BOLD_ONLY, end='' )
-                            cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), attrs=BOLD_ONLY, end='' )  
-                            return quit(traceback.format_exc()) 
+                            cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), attrs=BOLD_ONLY, end='' )
+                            return quit(traceback.format_exc())
 
                     else:
                         cprint(''.join([ HIGHER_RED, '%s %s %s %s%s' % ('\n[' + x_tag + '] Download this video at'
@@ -1012,20 +1012,20 @@ def create_dir(save_dir):
             os.makedirs(save_dir)
     except FileExistsError: # Check this first to avoid OSError cover this
         pass # Normal if re-download
-    except OSError: # e.g. File name too long 
+    except OSError: # e.g. File name too long
 
         # Only need to care for individual path component
         #, i.e. os.statvfs('./').f_namemax = 255(normal fs), 242(docker) or 143(eCryptfs) )
         #, not full path( os.statvfs('./').f_frsize - 1 = 2045)
         # Overkill seems even you do extra work to truncate path, then what if user give arg_dir at
         # ... 2045th path? how is it possible create new dir/file from that point?
-        # So only need to care for individual component 
+        # So only need to care for individual component
         #... which max total(estimate) is uname 100 + (boardname 50*4)+( section 50*3) = ~450 bytes only.
         # Then add max file 255 bcome 705, still far away from 2045th byte(or 335 4_bytes utf-8)
         # So you direct throws OSError enough to remind that user don't make insane fs hier
 
         cprint(''.join([ HIGHER_RED, '%s' % ('\nIt might causes by too long(2045 bytes) in full path.\
-        You may want to to use -d <other path> OR -c <Maximum length of folder & filename>.\n\n') ]), attrs=BOLD_ONLY, end='' )  
+        You may want to to use -d <other path> OR -c <Maximum length of folder & filename>.\n\n') ]), attrs=BOLD_ONLY, end='' )
         raise
 
 def write_log(arg_timestamp_log, url_path, shortform
@@ -1033,7 +1033,7 @@ def write_log(arg_timestamp_log, url_path, shortform
     , save_dir, images, pin, arg_cut, break_from_latest_pin):
 
     got_img = False
-    
+
     if arg_timestamp_log:
         if pin:
             log_timestamp = 'log-pinterest-downloader_' + str(pin) + '_' + datetime.now().strftime('%Y-%m-%d %H.%M.%S')
@@ -1060,7 +1060,7 @@ def write_log(arg_timestamp_log, url_path, shortform
             f.write('Input URL: https://www.pinterest.com/' + url_path.rstrip('/')  + '/\n') # Reuse/refer when want to update
             if shortform: # single pin no need
                 f.write('Folder URL: https://www.pinterest.com/' + shortform.rstrip('/') + '/\n\n') # Reuse/refer when want to update specific folder only
-            
+
     if images:
         #dj(images)
         #print('len(images) IF: ' + str(len(images)))
@@ -1077,11 +1077,11 @@ def write_log(arg_timestamp_log, url_path, shortform
                     for l in index_line:
                         existing_indexes.append(l.split('[ ')[1].split(' ] Pin Id: ')[1].strip())
             except (FileNotFoundError, OSError, KeyError, TypeError):
-                cprint(''.join([ HIGHER_YELLOW, '%s' % ('\nWrite log increment from last log stored index failed. Fallback to -lt\n\n') ]), attrs=BOLD_ONLY, end='' )  
+                cprint(''.join([ HIGHER_YELLOW, '%s' % ('\nWrite log increment from last log stored index failed. Fallback to -lt\n\n') ]), attrs=BOLD_ONLY, end='' )
                 log_timestamp = 'log-pinterest-downloader_' + datetime.now().strftime('%Y-%m-%d %H.%M.%S')
                 log_path = os.path.join(save_dir, '{}'.format( sanitize(log_timestamp) + '.log' ))
                 with open(log_path, 'w', encoding='utf-8') as f: # Refer below else:
-                    f.write('Pinterest Downloader: Version ' + str(__version__)  + '\n\n') 
+                    f.write('Pinterest Downloader: Version ' + str(__version__)  + '\n\n')
         else:
 
             if pin:
@@ -1114,7 +1114,7 @@ def write_log(arg_timestamp_log, url_path, shortform
             got_img = True
             image_id = image['id']
             #print('valid id:' + str(image_id))
-            if image_id in existing_indexes: 
+            if image_id in existing_indexes:
                 print('dup image_id ' + str(image_id))
                 # Still got_img True to try re-download flow since only want to ensure log don't want duplicated if reorder
                 continue
@@ -1155,7 +1155,7 @@ def write_log(arg_timestamp_log, url_path, shortform
                         f.write('[ ' + str(index_last + log_i + 1 - skipped_total) + ' ] Pin Id: ' + str(image_id) + '\n')
                         f.write(story + '\n\n')
                 except OSError: # e.g. File name too long
-                    cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), attrs=BOLD_ONLY, end='' )  
+                    cprint(''.join([ HIGHER_RED, '%s' % ('\nYou may want to use -c <Maximum length of filename>\n\n') ]), attrs=BOLD_ONLY, end='' )
                     return quit(traceback.format_exc())
             else:
                 skipped_total+=1
@@ -1175,7 +1175,7 @@ def get_latest_pin(save_dir):
     depth = 1
     # rf: https://stackoverflow.com/a/42720847/1074998 # Don't use expanduser and expandvars for arbitrary input
     # [1] abspath() already acts as normpath() to remove trailing os.sep
-    #, and we need ensures trailing os.sep not exists to make slicing accurate. 
+    #, and we need ensures trailing os.sep not exists to make slicing accurate.
     # [2] abspath() also make /../ and ////, "." get resolved even though os.walk can returns it literally.
     walk_dir = os.path.abspath(save_dir)
     for root, dirs, files in os.walk(walk_dir):
@@ -1196,7 +1196,7 @@ def fetch_imgs(board, uname, board_slug, section_slug, is_main_board
     , arg_dir, arg_thread_max
     , IMGS_SESSION, IMG_SESSION, V_SESSION, PIN_SESSION, proxies
     , cookie_file, arg_cut, arg_el, fs_f_max):
-    
+
     bookmark = None
     images = []
 
@@ -1207,7 +1207,7 @@ def fetch_imgs(board, uname, board_slug, section_slug, is_main_board
             shortform = '/'.join((uname, board_slug, section_slug))
         else:
             shortform = '/'.join((uname, board_slug))
-    
+
     if arg_timestamp:
         timestamp_d = '_' + datetime.now().strftime('%Y-%m-%d %H.%M.%S') + '.d'
     else:
@@ -1219,7 +1219,7 @@ def fetch_imgs(board, uname, board_slug, section_slug, is_main_board
             #save_dir = os.path.join(arg_dir, uname, board['name'] + timestamp_d)
             #url = board['url']
             bid = board['id']
-            # Might unicode, so copy from web browser become %E4%Bd 
+            # Might unicode, so copy from web browser become %E4%Bd
             #... which is not the board filename I want
             board_name_folder = board['name']
             #print('root bname: ' + repr(board_name_folder))
@@ -1241,7 +1241,7 @@ def fetch_imgs(board, uname, board_slug, section_slug, is_main_board
 Please ensure your username/boardname/[section] or link has media item.\n') )
     except (KeyError, TypeError):
         cprint(''.join([ HIGHER_RED, '%s %s %s' % ('\n[' + x_tag + '] Failed. Path:', shortform, '\n\n') ]), attrs=BOLD_ONLY, end='' )
-        return quit(traceback.format_exc() + '\n[!] Something wrong with Pinterest URL. Please report this issue at https://github.com/limkokhole/pinterest-downloader/issues , thanks.') 
+        return quit(traceback.format_exc() + '\n[!] Something wrong with Pinterest URL. Please report this issue at https://github.com/limkokhole/pinterest-downloader/issues , thanks.')
 
     fs_d_max = fs_f_max
     #if IS_WIN: # [DEPRECATED] since always -el now AND Windows 259 - \\?\ = 255 normal Linux
@@ -1269,7 +1269,7 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
             url = '/'.join((uname, board_slug))
 
     #if not section_slug:
-    #   print('[Board id]: '+ repr(bid)) 
+    #   print('[Board id]: '+ repr(bid))
 
     if not arg_rescrape:
         latest_pin = get_latest_pin(save_dir)
@@ -1295,7 +1295,7 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
             'board_id': bid,
             'board_url': url,
             'field_set_key': 'react_grid_pin',
-            'filter_section_pins': 'true', 
+            'filter_section_pins': 'true',
             #'order': 'DESCENDING',#'oldest',#'default',
             #'order': 'default',
             #'sort':'last_pinned_to',
@@ -1459,7 +1459,7 @@ Please ensure your username/boardname/[section] or link has media item.\n') )
         if img_total == 0:
             print('\n[i] No {}item found.'.format('new ' if break_from_latest_pin else  ''))
             return
-        print( (' [' + plus_tag + '] Found {} {}image/video' + ('s' if img_total > 1 else '') ) 
+        print( (' [' + plus_tag + '] Found {} {}image/video' + ('s' if img_total > 1 else '') )
             .format(img_total, 'new ' if break_from_latest_pin else  ''))
         print('Download into directory:  ' + save_dir.rstrip(os.sep) + os.sep)
     else:
@@ -1523,24 +1523,24 @@ def update_all( arg_thread_max :int, arg_cut :int, arg_rescrape :bool
                 dir_origin = os.path.abspath( os.path.join(f, '../'*(cd_back_count+1) ) )
                 dir_split = PurePath(dir_origin).parts[:]
                 # Safeguard to avoid travel to parent of current directory
-                if len(dir_split) < cwd_component_total: 
+                if len(dir_split) < cwd_component_total:
                     cprint(''.join([ HIGHER_YELLOW, '%s' % ('\n' + 'Update from parent directory of current directory is forbidden. Skipped.\n'
-                        + 'You should cd to parent directory to update this folder:' 
+                        + 'You should cd to parent directory to update this folder:'
                         + '\nurls file: ' + f + '\nInput url: '+ input_url + '\nFolder url: ' + folder_url
-                        + '\nParent directory: ' + dir_origin 
+                        + '\nParent directory: ' + dir_origin
                         + '\nCurrent directory: ' + bk_cwd + '\n\n') ]))
                     break
                 if dir_origin in urls_map:
                     # cd_back_count: 3 means section, 2 means board, 1 means username
                     # section separate scrape, not by username/board, while board filter by username below
-                    # -es force later so no section repeat. 
+                    # -es force later so no section repeat.
                     # So not included new created section(new board possible if got username)
                     if cd_back_count in (2, 3):
                         urls_map[dir_origin]['info'].append(  {'url': folder_url, 'cd': cd_back_count} )
                         #print(urls_map[dir_origin])
-                    elif cd_back_count  == 1:  
+                    elif cd_back_count  == 1:
                         urls_map[dir_origin]['username'] = True
-                    
+
                 else:
                     urls_map[dir_origin] = {'info': [ {'url': input_url, 'cd': cd_back_count} ], 'username': True if (cd_back_count == 1) else False}
                 break # Only read headers
@@ -1591,7 +1591,7 @@ def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :
 
     # Not feasible update based on latest pin if v/img only
     # , unless download zero size img if video only(vice-versa) which seems not desired.
-    if arg_img_only or arg_v_only: 
+    if arg_img_only or arg_v_only:
         arg_rescrape = True
 
     if arg_update_all:
@@ -1616,7 +1616,7 @@ def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :
             print('[i] Pin url is: ' + arg_path + '/') # may err without trailing '/'
 
     url_path = arg_path.split('?')[0].split('#')[0]
-    # Convert % format of unicode url when copied from Firefox 
+    # Convert % format of unicode url when copied from Firefox
     # This is important especially section need compare the section name later
     url_path = unquote(url_path).rstrip('/')
     if '://' in url_path:
@@ -1631,7 +1631,7 @@ def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :
     if len(slash_path) == 0:
         return quit('{} {} {}'.format('\n[' + x_tag + '] Neither username/boardname nor valid link: ', arg_path, '\n') )
     elif len(slash_path) > 3:
-        return quit('[!] Something wrong with Pinterest URL. Please report this issue at https://github.com/limkokhole/pinterest-downloader/issues , thanks.') 
+        return quit('[!] Something wrong with Pinterest URL. Please report this issue at https://github.com/limkokhole/pinterest-downloader/issues , thanks.')
 
     fs_f_max = None
     if IS_WIN:
@@ -1675,7 +1675,7 @@ def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :
             slash_path = slash_path[:-1]
         elif slash_path[-2].strip() == 'pin':
             print('[i] Job is download video/image of single pin page.')
-            pin_id = slash_path[-1] #bk first before reset 
+            pin_id = slash_path[-1] #bk first before reset
             slash_path = [] # reset for later in case exception
             PIN_SESSION = get_session(0, proxies, cookies)
             IMG_SESSION = get_session(3, proxies, cookies)
@@ -1690,7 +1690,7 @@ def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :
         if ( slash_path[-3] in ('search', 'categories', 'topics') ) or ( slash_path[-1] in ['more_ideas'] ):
             return quit('{}'.format('\n[' + x_tag + '] Search, Categories, Topics, more_ideas are not supported.\n') )
         board = get_board_info(sec_path, False, slash_path[-1], board_path, proxies, cookies) # need_get_section's True/False not used
-        try: 
+        try:
             PIN_SESSION = get_session(0, proxies, cookies)
             IMGS_SESSION = get_session(2, proxies, cookies)
             IMG_SESSION = get_session(3, proxies, cookies)
@@ -1710,7 +1710,7 @@ def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :
         if slash_path[-2] in ('search', 'categories', 'topics'):
             return quit('{}'.format('\n[' + x_tag + '] Search, Categories and Topics not supported.\n') )
         board, sections = get_board_info(board_path, arg_exclude_section, None, None, proxies, cookies)
-        try: 
+        try:
             PIN_SESSION = get_session(0, proxies, cookies)
             IMGS_SESSION = get_session(2, proxies, cookies)
             IMG_SESSION = get_session(3, proxies, cookies)
@@ -1741,7 +1741,7 @@ def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :
         print('[i] Job is download all boards by username: {}'.format(slash_path[-1]))
         if slash_path[-1] in ('search', 'categories', 'topics'):
             return quit('{}'.format('\n[' + x_tag + '] Search, Categories and Topics not supported.\n') )
-        try: 
+        try:
             boards = fetch_boards( slash_path[-1], proxies, cookies)
             PIN_SESSION = get_session(0, proxies, cookies)
             IMGS_SESSION = get_session(2, proxies, cookies)
@@ -1775,11 +1775,11 @@ def run_library_main(arg_path :str, arg_dir :str, arg_thread_max :int, arg_cut :
                 if (not arg_exclude_section) and (board['section_count'] > 0):
                     sec_c = board['section_count']
                     print('[i] Trying to get ' + str(sec_c) + ' section{}'.format('s' if sec_c > 1 else ''))
-                    # ags.es placeholder below always False bcoz above already check (not arg_exclude_section) 
+                    # ags.es placeholder below always False bcoz above already check (not arg_exclude_section)
                     board, sections = get_board_info(board_path, False, None, None, proxies, cookies)
                     for sec in sections:
                         sec_path = board_path + '/' + sec['slug']
-                        board = get_board_info(sec_path, False, sec['slug'], board_path, proxies, cookies) 
+                        board = get_board_info(sec_path, False, sec['slug'], board_path, proxies, cookies)
                         sec_uname, sec_bname = board_path.split('/')
                         fetch_imgs( board, sec_uname, sec_bname, sec['slug'], False
                             , arg_board_timestamp, arg_log_timestamp, url_path
@@ -1825,11 +1825,11 @@ def run_direct_main():
     # Need reverse images order(previously is latest to oldest) to avoid abort this need re-download in-between missing images.
     arg_parser.add_argument('-rs', '--re-scrape', dest='rescrape', action='store_true', help='Default is only fetch new images since latest(highest) Pin ID local image to speed up update process.\n\
         This option disable that behavior and re-scrape all, use it when you feel missing images somewhere or incomplete download.\n\
-        This issue is because Pinterest only lists reordered as you see in the webpage which possible newer images reorder below local highest Pin ID image and missed unless fetch all pages.') 
+        This issue is because Pinterest only lists reordered as you see in the webpage which possible newer images reorder below local highest Pin ID image and missed unless fetch all pages.')
     arg_parser.add_argument('-ua', '--update-all', dest='update_all', action='store_true', help='Update all folders in current directory recursively based on theirs urls-pinterest-downloader.urls.\n\
         New section will not download. New board may download if previously download by username.\n\
         Options other than -c, -j, -rs, -io/vo, -ps/p will ignore.\n\
-        -c must same if provided previously or else filename not same will re-download. Not recommend to use -c at all.') 
+        -c must same if provided previously or else filename not same will re-download. Not recommend to use -c at all.')
     arg_parser.add_argument('-es', '--exclude-section', dest='exclude_section', action='store_true', help='Exclude sections if download from username or board.')
     arg_parser.add_argument('-io', '--image-only', dest='img_only', action='store_true', help='Download image only. Assumed -rs')
     arg_parser.add_argument('-vo', '--video-only', dest='v_only', action='store_true', help='Download video only. Assumed -rs')
@@ -1851,7 +1851,7 @@ def run_direct_main():
                             , args.force, args.exclude_section, args.rescrape
                             , args.img_only, args.v_only, args.update_all
                             , args.https_proxy, args.http_proxy, args.cookies)
-    
+
 if __name__ == '__main__':
     try:
         run_direct_main()
