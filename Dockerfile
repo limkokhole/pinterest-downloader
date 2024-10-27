@@ -1,18 +1,17 @@
-# Use the official Alpine Linux image
-FROM python:3.9-alpine
+FROM ubuntu:latest
 
-# Set the working directory in the container
-WORKDIR /app
+# Install dependencies
+RUN apt-get update && \
+    apt-get install -y git python3 python3-pip chromium-driver
 
-# Install build dependencies
-RUN apk add --no-cache gcc musl-dev libffi-dev
+# Clone the repository
+RUN git clone https://github.com/raven2cz/pinterest-downloader.git
 
-# Copy the python script and the requirements file into the container
-COPY pinterest-downloader.py pinterest-downloader.py
-COPY requirements.txt requirements.txt
+# Set working directory
+WORKDIR /pinterest-downloader
 
-# Install the dependencies from the requirements file
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python requirements
+RUN pip3 install -r requirements.txt --break-system-packages
 
-# Command to run your Pinterest downloader script
-CMD ["python", "pinterest-downloader.py","Your account url here"]
+# Keep the container running
+CMD ["tail", "-f", "/dev/null"]
